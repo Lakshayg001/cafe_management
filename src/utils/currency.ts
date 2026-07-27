@@ -1,0 +1,1 @@
+export const rupee = (amount: number): string => `₹${amount}`;
