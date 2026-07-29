@@ -257,7 +257,7 @@ export default function App() {
               }}
             >
               <p>Monday – Sunday</p>
-              <p>10:00 AM – 10:00 PM</p>
+              <p>05:00 PM – 11:00 PM</p>
             </div>
           </div>
 
@@ -277,8 +277,8 @@ export default function App() {
                 color: COLORS.muted,
               }}
             >
-              <p>Your Café Address</p>
-              <p>Contact: +91 XXXXXXXXXX</p>
+              <p>Opp. City Hospital, Avas Vikas Road, Shastri Nagar, Civil Lines, Budaun, Uttar Pradesh – 243601</p>
+              <p>Contact: +91 8399999090</p>
               <p>hello@velvetbrew.com</p>
             </div>
           </div>
