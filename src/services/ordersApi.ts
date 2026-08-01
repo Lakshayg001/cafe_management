@@ -1,4 +1,4 @@
-import type { Order, OrderStatus } from "../types";
+import type { Order, OrderStatus, CategoryId } from "../types";
 import { SAMPLE_ORDERS } from "../data/sampleOrders";
 
 /**
@@ -47,63 +47,64 @@ function writeStore(orders: Order[]): void {
 }
 
 function mapBackendOrderToFrontend(o: any): Order {
-  let customerName = o.customerName || "";
-  let phone = o.phone || "";
-  let email = o.email || "";
-
-  if (o.customer) {
-    customerName = o.customer.fullName || o.customer.name || customerName;
-    phone = o.customer.mobile || o.customer.phone || phone;
-    email = o.customer.email || email;
-  } else {
-    customerName = o.fullName || customerName;
-    phone = o.mobile || phone;
-  }
+  const customerName = o.customerName || "";
+  const phone = o.mobile || o.phone || "";
+  const email = o.email || "";
 
   const items = Array.isArray(o.items)
     ? o.items.map((item: any) => {
-        const qty = item.qty !== undefined ? item.qty : (item.quantity !== undefined ? item.quantity : 1);
+        const qty = item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1);
+        const name = item.menuName || item.name || `Item #${item.menuId || item.menuItemId}`;
         
-        let category: any = item.category || "hot";
-        if (item.menuId === 1) category = "hot";
-        else if (item.menuId === 2) category = "cold";
-        else if (item.menuId === 3) category = "shakes";
-        else if (item.menuId === 4) category = "bites";
-
-        let id = item.id || "";
-        if (!id && item.menuItemId) {
-          let prefix = "h";
-          if (category === "cold") prefix = "c";
-          else if (category === "shakes") prefix = "s";
-          else if (category === "bites") prefix = "b";
-          id = `${prefix}${item.menuItemId}`;
+        let category: CategoryId = "hot";
+        const lowerName = name.toLowerCase();
+        if (lowerName.includes("pasta") || lowerName.includes("sandwich") || lowerName.includes("fries")) {
+          category = "bites";
+        } else if (lowerName.includes("shake")) {
+          category = "shakes";
+        } else if (lowerName.includes("cold") || lowerName.includes("frappe")) {
+          category = "cold";
         }
 
+        const price = item.unitPrice || item.price || 0;
+
         return {
-          id: String(id),
-          name: item.name || (item.menuItem && item.menuItem.name) || `Item #${item.menuItemId}`,
+          id: String(item.menuId || item.menuItemId || item.id || Math.random()),
+          name,
           category,
-          price: item.price || (item.menuItem && item.menuItem.price) || 0,
+          price,
           qty,
         };
       })
     : [];
 
+  let status: OrderStatus = "Pending";
+  if (o.orderStatus) {
+    const s = o.orderStatus.toUpperCase();
+    if (s === "ACCEPTED") status = "Accepted";
+    else if (s === "PREPARING") status = "Preparing";
+    else if (s === "READY") status = "Ready";
+    else if (s === "COMPLETED") status = "Completed";
+    else if (s === "REJECTED") status = "Rejected";
+  }
+
+  const paid = o.paymentStatus ? o.paymentStatus.toUpperCase() === "COMPLETED" || o.paymentStatus.toUpperCase() === "PAID" : false;
+
   return {
-    id: String(o.id || ""),
+    id: o.orderNumber || o.id || "",
     customerName,
     phone,
     email,
     mode: o.mode || "Takeaway",
-    note: o.note || o.specialInstructions || "",
+    note: o.specialInstructions || o.note || "",
     items,
     subtotal: o.subtotal || 0,
-    savings: o.savings || 0,
-    total: o.total || 0,
+    savings: o.discount || o.savings || 0,
+    total: o.totalAmount || o.total || 0,
     paymentMethod: o.paymentMethod || "upi",
-    paid: typeof o.paid === "boolean" ? o.paid : false,
-    status: o.status || "Pending",
-    createdAt: o.createdAt || new Date().toISOString(),
+    paid,
+    status,
+    createdAt: o.orderedAt || o.createdAt || new Date().toISOString(),
   };
 }
 
