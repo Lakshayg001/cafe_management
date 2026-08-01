@@ -4,6 +4,34 @@ export type CategoryId = "hot" | "cold" | "shakes" | "bites";
 
 export type PaymentMethod = "upi" | "card" | "cod";
 
+export type OrderStatus =
+    | "Pending" | "Accepted" | "Preparing" | "Ready" | "Completed" | "Rejected";
+
+export interface OrderItemRecord {
+    id: string;
+    name: string;
+    category: CategoryId;
+    price: number;
+    qty: number;
+}
+
+export interface Order {
+    id: string;
+    customerName: string;
+    phone: string;
+    email?: string;
+    mode: Details["mode"];
+    note: string;
+    items: OrderItemRecord[];
+    subtotal: number;
+    savings: number;
+    total: number;
+    paymentMethod: PaymentMethod;
+    paid: boolean;
+    status: OrderStatus;
+    createdAt: string;
+}
+
 export type CheckoutStep =
     | null
     | "details"
@@ -14,6 +42,12 @@ export interface MenuItem {
     id: string;
     name: string;
     price: number;
+    description?: string;
+    imageUrl?: string;
+    veg?: boolean;
+    available?: boolean;
+    featured?: boolean;
+    offerPrice?: number | null;
 }
 
 export interface Category {
@@ -31,6 +65,7 @@ export interface CartItem {
 export interface Details {
     name: string;
     phone: string;
+    email: string;
     mode: "Takeaway" | "Dine-in";
     note: string;
 }

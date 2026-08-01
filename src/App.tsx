@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Coffee, Snowflake, CupSoda, UtensilsCrossed } from "lucide-react";
 
 import "./index.css";
 
@@ -11,11 +12,16 @@ import CheckoutModal from "./components/CheckoutModal";
 import LegalModal from "./components/LegalModal";
 
 import { COLORS } from "./data/colors";
-import { PROMO_HOT_PRICE } from "./data/menu";
+import { MENU, CATEGORIES, PROMO_HOT_PRICE } from "./data/menu";
+import { getMenu, getCategories } from "./api/menu";
+
+import { createOrder } from "./services/ordersApi";
+import type { Order } from "./types";
 
 import type {
   CartItem,
   CategoryId,
+  Category,
   Details,
   MenuItem,
   PaymentMethod,
@@ -45,14 +51,184 @@ export default function App() {
     useState<Details>({
       name: "",
       phone: "",
+      email: "",
       mode: "Takeaway",
       note: "",
     });
+
+  const [menu, setMenu] = useState<Record<CategoryId, MenuItem[]>>(MENU);
+  const [categories, setCategories] = useState<Category[]>(CATEGORIES);
+  const [menuLoading, setMenuLoading] = useState(true);
+  const [menuError, setMenuError] = useState<string | null>(null);
+
+  const mapCategoryKey = (id: number, name: string): CategoryId => {
+    if (id === 1) return "hot";
+    if (id === 2) return "cold";
+    if (id === 3) return "shakes";
+    if (id === 4) return "bites";
+
+    const norm = (name || "").toLowerCase();
+    if (norm.includes("hot")) return "hot";
+    if (norm.includes("cold")) return "cold";
+    if (norm.includes("shake")) return "shakes";
+    return "bites";
+  };
+
+  const getCategoryIcon = (key: CategoryId) => {
+    switch (key) {
+      case "hot":
+        return Coffee;
+      case "cold":
+        return Snowflake;
+      case "shakes":
+        return CupSoda;
+      case "bites":
+      default:
+        return UtensilsCrossed;
+    }
+  };
+
+  useEffect(() => {
+    let active = true;
+    async function loadMenu() {
+      try {
+        setMenuLoading(true);
+        const [apiCategories, apiItems] = await Promise.all([
+          getCategories(),
+          getMenu(),
+        ]);
+        if (!active) return;
+
+        const mappedCategories: Category[] = apiCategories.map((cat) => {
+          const key = mapCategoryKey(cat.id, cat.name);
+          return {
+            id: key,
+            label: cat.name,
+            icon: getCategoryIcon(key),
+          };
+        });
+
+        const uniqueCategories: Category[] = [];
+        const seenKeys = new Set<CategoryId>();
+        mappedCategories.forEach((cat) => {
+          if (!seenKeys.has(cat.id)) {
+            seenKeys.add(cat.id);
+            uniqueCategories.push(cat);
+          }
+        });
+
+        const newMenu: Record<CategoryId, MenuItem[]> = {
+          hot: [],
+          cold: [],
+          shakes: [],
+          bites: [],
+        };
+
+        apiItems.forEach((item) => {
+          const category = mapCategoryKey(item.categoryId, item.categoryName);
+
+          newMenu[category].push({
+            id: String(item.id),
+            name: item.name,
+            price: item.price,
+            description: item.description,
+            imageUrl: item.imageUrl,
+            veg: item.veg,
+            available: item.available,
+            featured: item.featured,
+            offerPrice: item.offerPrice,
+          });
+        });
+
+        setCategories(uniqueCategories.length > 0 ? uniqueCategories : CATEGORIES);
+        setMenu(newMenu);
+        setMenuError(null);
+      } catch (err: any) {
+        console.error("Error loading menu or categories from API:", err);
+        if (active) {
+          setMenuError("Failed to fetch latest menu. Using offline fallback menu.");
+        }
+      } finally {
+        if (active) {
+          setMenuLoading(false);
+        }
+      }
+    }
+    loadMenu();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleRetryFetchMenu = async () => {
+    try {
+      setMenuLoading(true);
+      setMenuError(null);
+      const [apiCategories, apiItems] = await Promise.all([
+        getCategories(),
+        getMenu(),
+      ]);
+
+      const mappedCategories: Category[] = apiCategories.map((cat) => {
+        const key = mapCategoryKey(cat.id, cat.name);
+        return {
+          id: key,
+          label: cat.name,
+          icon: getCategoryIcon(key),
+        };
+      });
+
+      const uniqueCategories: Category[] = [];
+      const seenKeys = new Set<CategoryId>();
+      mappedCategories.forEach((cat) => {
+        if (!seenKeys.has(cat.id)) {
+          seenKeys.add(cat.id);
+          uniqueCategories.push(cat);
+        }
+      });
+
+      const newMenu: Record<CategoryId, MenuItem[]> = {
+        hot: [],
+        cold: [],
+        shakes: [],
+        bites: [],
+      };
+
+      apiItems.forEach((item) => {
+        const category = mapCategoryKey(item.categoryId, item.categoryName);
+
+        newMenu[category].push({
+          id: String(item.id),
+          name: item.name,
+          price: item.price,
+          description: item.description,
+          imageUrl: item.imageUrl,
+          veg: item.veg,
+          available: item.available,
+          featured: item.featured,
+          offerPrice: item.offerPrice,
+        });
+      });
+
+      setCategories(uniqueCategories.length > 0 ? uniqueCategories : CATEGORIES);
+      setMenu(newMenu);
+      setMenuError(null);
+    } catch (err: any) {
+      console.error("Error retrying menu load:", err);
+      setMenuError("Failed to fetch latest menu. Using offline fallback menu.");
+    } finally {
+      setMenuLoading(false);
+    }
+  };
 
   const priceFor = (
     category: CategoryId,
     item: MenuItem
   ) => {
+    if (item.offerPrice !== undefined && item.offerPrice !== null) {
+      return item.offerPrice;
+    }
+
     if (category === "hot") {
       return Math.min(
         item.price,
@@ -166,22 +342,39 @@ export default function App() {
     setCheckoutOpen(true);
   };
 
-  const confirmOrder = () => {
-    alert(
-      "Order placed successfully!"
-    );
+  const confirmOrder = async () => {
+    const id = "VB" + Math.floor(100000 + Math.random() * 900000);
+
+    const order: Order = {
+      id,
+      customerName: details.name,
+      phone: details.phone,
+      email: details.email,
+      mode: details.mode,
+      note: details.note,
+      items: cartItems.map((line) => ({
+        id: line.item.id,
+        name: line.item.name,
+        category: line.category,
+        price: priceFor(line.category, line.item),
+        qty: line.qty,
+      })),
+      subtotal: total,
+      savings,
+      total,
+      paymentMethod: payment,
+      paid: payment !== "cod",
+      status: "Pending",
+      createdAt: new Date().toISOString(),
+    };
+
+    await createOrder(order);
+
+    alert(`Order placed successfully! Order ID: ${id}`);
 
     setCheckoutOpen(false);
-
     setCart({});
-
-    setDetails({
-      name: "",
-      phone: "",
-      mode: "Takeaway",
-      note: "",
-    });
-
+    setDetails({ name: "", phone: "", email: "", mode: "Takeaway", note: "" });
     setPayment("upi");
   };
   return (
@@ -209,6 +402,11 @@ export default function App() {
         promoPrice={PROMO_HOT_PRICE}
         addToCart={addToCart}
         changeQty={changeQty}
+        menu={menu}
+        loading={menuLoading}
+        error={menuError}
+        onRetry={handleRetryFetchMenu}
+        categories={categories}
       />
 
       {/* Footer */}

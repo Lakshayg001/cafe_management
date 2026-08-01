@@ -8,4 +8,8 @@ export const COLORS = {
     muted: "#B9A488",
     clay: "#8C5A34",
     line: "rgba(199,154,86,0.25)",
+    success: "#10B981",
+    danger: "#EF4444",
+    warning: "#F59E0B",
+    info: "#3B82F6",
 } as const;

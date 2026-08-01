@@ -20,11 +20,17 @@ export default function MenuCard({
     onAdd,
     onDecrease,
 }: MenuCardProps) {
+    const hasOffer = item.offerPrice !== undefined && item.offerPrice !== null;
+
     const isPromo =
-        category === "hot" && item.price > promoPrice;
+        hasOffer
+            ? (item.offerPrice as number) < item.price
+            : category === "hot" && item.price > promoPrice;
 
     const displayPrice =
-        category === "hot"
+        hasOffer
+            ? (item.offerPrice as number)
+            : category === "hot"
             ? Math.min(item.price, promoPrice)
             : item.price;
 
@@ -35,15 +41,37 @@ export default function MenuCard({
                 background: COLORS.umber,
             }}
         >
-            <div>
-                <p
-                    className="vb-display text-lg"
-                    style={{
-                        color: COLORS.cream,
-                    }}
-                >
-                    {item.name}
-                </p>
+            <div className="flex-1 min-w-0">
+                <div className="flex items-start gap-2">
+                    {item.veg !== undefined && (
+                        <div
+                            className="mt-1 flex items-center justify-center w-4.5 h-4.5 border border-solid rounded p-0.5 shrink-0"
+                            style={{
+                                borderColor: item.veg ? "#10B981" : "#EF4444",
+                                borderWidth: "1.5px",
+                                width: "16px",
+                                height: "16px"
+                            }}
+                            title={item.veg ? "Vegetarian" : "Non-Vegetarian"}
+                        >
+                            <div
+                                className="w-1.5 h-1.5 rounded-full"
+                                style={{
+                                    backgroundColor: item.veg ? "#10B981" : "#EF4444"
+                                }}
+                            />
+                        </div>
+                    )}
+                    <p
+                        className="vb-display text-lg truncate"
+                        style={{
+                            color: COLORS.cream,
+                        }}
+                        title={item.name}
+                    >
+                        {item.name}
+                    </p>
+                </div>
 
                 <div className="flex items-center gap-2 mt-1">
                     {isPromo && (
@@ -78,6 +106,18 @@ export default function MenuCard({
                         </span>
                     )}
                 </div>
+
+                {item.description && (
+                    <p
+                        className="text-xs mt-2 line-clamp-2"
+                        style={{
+                            color: COLORS.muted,
+                            lineHeight: "1.4"
+                        }}
+                    >
+                        {item.description}
+                    </p>
+                )}
             </div>
 
             {qtyInCart === 0 ? (
