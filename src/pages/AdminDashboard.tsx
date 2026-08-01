@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, RefreshCw } from "lucide-react";
+import { LogOut, RefreshCw, PlusCircle } from "lucide-react";
 import { COLORS } from "../data/colors";
 import { fetchOrders, updateOrderStatus, updateOrderPaid } from "../services/ordersApi";
 import { logout } from "../services/adminAuth";
 import OrderCard from "../components/admin/OrderCard";
+import PlaceOrderModal from "../components/admin/PlaceOrderModal";
 import logo from "../assets/velvet-brew-logo.jpg";
 import type { Order, OrderStatus } from "../types";
 
@@ -22,6 +23,7 @@ export default function AdminDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [filter, setFilter] = useState<"All" | OrderStatus>("All");
   const [loading, setLoading] = useState(true);
+  const [placeOrderOpen, setPlaceOrderOpen] = useState(false);
   const navigate = useNavigate();
 
   const load = useCallback(async () => {
@@ -75,12 +77,19 @@ export default function AdminDashboard() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={load} className="flex items-center gap-1.5 text-xs" style={{ color: COLORS.gold }}>
+          <button
+            onClick={() => setPlaceOrderOpen(true)}
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs cursor-pointer"
+            style={{ background: COLORS.gold, color: COLORS.espresso, fontWeight: "bold" }}
+          >
+            <PlusCircle size={13} /> Place Order
+          </button>
+          <button onClick={load} className="flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: COLORS.gold }}>
             <RefreshCw size={14} /> Refresh
           </button>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs"
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs cursor-pointer"
             style={{ border: `1px solid ${COLORS.gold}`, color: COLORS.gold }}
           >
             <LogOut size={13} /> Logout
@@ -127,6 +136,12 @@ export default function AdminDashboard() {
           </div>
         )}
       </main>
+      
+      <PlaceOrderModal
+        open={placeOrderOpen}
+        onClose={() => setPlaceOrderOpen(false)}
+        onSuccess={load}
+      />
     </div>
   );
 }
