@@ -189,7 +189,10 @@ export async function updateOrderStatus(
   const res = await fetch(`${API_BASE}/customer/orders/${id}/status`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({
+      status: status.toUpperCase(),
+      orderStatus: status.toUpperCase(),
+    }),
   });
   if (!res.ok) throw new Error("Failed to update order status");
   return res.json();
@@ -209,7 +212,10 @@ export async function updateOrderPaid(id: string, paid: boolean): Promise<Order 
   const res = await fetch(`${API_BASE}/customer/orders/${id}/paid`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ paid }),
+    body: JSON.stringify({
+      paid,
+      paymentStatus: paid ? "PAID" : "PENDING",
+    }),
   });
   if (!res.ok) throw new Error("Failed to update payment status");
   return res.json();
