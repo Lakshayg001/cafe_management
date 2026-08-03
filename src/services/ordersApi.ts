@@ -172,51 +172,63 @@ export async function createOrder(order: Order): Promise<Order> {
   return res.json();
 }
 
+/** Helper to map a frontend Order object to the backend PATCH payload */
+function mapOrderToBackendPayload(order: Order) {
+  return {
+    customer: {
+      name: order.customerName,
+      mobile: order.phone,
+    },
+    items: order.items.map((item) => ({
+      menuId: Number(item.id) || Number(item.id.replace(/\D/g, "")) || 0,
+      quantity: item.qty,
+    })),
+    paymentStatus: order.paid ? "PAID" : "PENDING",
+    orderStatus: order.status.toUpperCase(),
+    tax: 0.00,
+    discount: order.savings || 0,
+    specialInstructions: order.note || "",
+  };
+}
+
 /** Update an order's status (called from the admin dashboard). */
-export async function updateOrderStatus(
-  id: string,
-  status: OrderStatus
-): Promise<Order | null> {
+export async function updateOrderStatus(order: Order): Promise<Order | null> {
   if (USE_MOCK) {
     const orders = readStore();
-    const idx = orders.findIndex((o) => o.id === id);
+    const idx = orders.findIndex((o) => o.id === order.id);
     if (idx === -1) return null;
-    orders[idx] = { ...orders[idx], status };
+    orders[idx] = { ...order };
     writeStore(orders);
     return orders[idx];
   }
 
-  const res = await fetch(`${API_BASE}/customer/orders/${id}/status`, {
+  const res = await fetch(`${API_BASE}/customer/orders?orderNumber=${order.id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      status: status.toUpperCase(),
-      orderStatus: status.toUpperCase(),
-    }),
+    body: JSON.stringify(mapOrderToBackendPayload(order)),
   });
   if (!res.ok) throw new Error("Failed to update order status");
-  return res.json();
+  const result = await res.json();
+  return result && result.data ? mapBackendOrderToFrontend(result.data) : null;
 }
 
 /** Mark an order paid/unpaid — useful once real payment webhooks exist. */
-export async function updateOrderPaid(id: string, paid: boolean): Promise<Order | null> {
+export async function updateOrderPaid(order: Order): Promise<Order | null> {
   if (USE_MOCK) {
     const orders = readStore();
-    const idx = orders.findIndex((o) => o.id === id);
+    const idx = orders.findIndex((o) => o.id === order.id);
     if (idx === -1) return null;
-    orders[idx] = { ...orders[idx], paid };
+    orders[idx] = { ...order };
     writeStore(orders);
     return orders[idx];
   }
 
-  const res = await fetch(`${API_BASE}/customer/orders/${id}/paid`, {
+  const res = await fetch(`${API_BASE}/customer/orders?orderNumber=${order.id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      paid,
-      paymentStatus: paid ? "PAID" : "PENDING",
-    }),
+    body: JSON.stringify(mapOrderToBackendPayload(order)),
   });
   if (!res.ok) throw new Error("Failed to update payment status");
-  return res.json();
+  const result = await res.json();
+  return result && result.data ? mapBackendOrderToFrontend(result.data) : null;
 }

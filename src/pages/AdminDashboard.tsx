@@ -46,13 +46,19 @@ export default function AdminDashboard() {
   }, [load]);
 
   const handleStatusChange = async (id: string, status: OrderStatus) => {
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
-    await updateOrderStatus(id, status);
+    const order = orders.find((o) => o.id === id);
+    if (!order) return;
+    const updated = { ...order, status };
+    setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
+    await updateOrderStatus(updated);
   };
 
   const handleTogglePaid = async (id: string, paid: boolean) => {
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, paid } : o)));
-    await updateOrderPaid(id, paid);
+    const order = orders.find((o) => o.id === id);
+    if (!order) return;
+    const updated = { ...order, paid };
+    setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
+    await updateOrderPaid(updated);
   };
 
   const handleLogout = () => {
