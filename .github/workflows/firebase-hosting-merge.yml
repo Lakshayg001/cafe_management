@@ -20,7 +20,7 @@ jobs:
 
       - name: Build
         env:
-          VITE_API_BASE_URL: http://api.velvetbrew.in/api/v1
+          VITE_API_BASE_URL: https://api.velvetbrew.in/api/v1
         run: npm run build
 
       - uses: FirebaseExtended/action-hosting-deploy@v0
