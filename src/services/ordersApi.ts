@@ -21,6 +21,10 @@ import { SAMPLE_ORDERS } from "../data/sampleOrders";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
 
+console.log("MODE:", import.meta.env.MODE);
+console.log("VITE_API_BASE_URL:", import.meta.env.VITE_API_BASE_URL);
+console.log("API_BASE:", API_BASE);
+
 // TODO(backend): flip to false once real endpoints are live.
 const USE_MOCK = true;
 
