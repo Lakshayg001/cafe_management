@@ -11,6 +11,7 @@ import { SAMPLE_ORDERS } from "../data/sampleOrders";
  * fetch() call written and commented out below the mock branch —
  * once the backend team's endpoints are ready:
  *
+ * 
  *   1. Set VITE_API_BASE_URL in your .env (or edit API_BASE below)
  *   2. Flip USE_MOCK to false
  *   3. Confirm the response shapes below match your API and adjust
@@ -21,7 +22,7 @@ import { SAMPLE_ORDERS } from "../data/sampleOrders";
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
 
 // TODO(backend): flip to false once real endpoints are live.
-const USE_MOCK = false;
+const USE_MOCK = true;
 
 const STORAGE_KEY = "vb_orders";
 
@@ -53,29 +54,29 @@ function mapBackendOrderToFrontend(o: any): Order {
 
   const items = Array.isArray(o.items)
     ? o.items.map((item: any) => {
-        const qty = item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1);
-        const name = item.menuName || item.name || `Item #${item.menuId || item.menuItemId}`;
-        
-        let category: CategoryId = "hot";
-        const lowerName = name.toLowerCase();
-        if (lowerName.includes("pasta") || lowerName.includes("sandwich") || lowerName.includes("fries")) {
-          category = "bites";
-        } else if (lowerName.includes("shake")) {
-          category = "shakes";
-        } else if (lowerName.includes("cold") || lowerName.includes("frappe")) {
-          category = "cold";
-        }
+      const qty = item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1);
+      const name = item.menuName || item.name || `Item #${item.menuId || item.menuItemId}`;
 
-        const price = item.unitPrice || item.price || 0;
+      let category: CategoryId = "hot";
+      const lowerName = name.toLowerCase();
+      if (lowerName.includes("pasta") || lowerName.includes("sandwich") || lowerName.includes("fries")) {
+        category = "bites";
+      } else if (lowerName.includes("shake")) {
+        category = "shakes";
+      } else if (lowerName.includes("cold") || lowerName.includes("frappe")) {
+        category = "cold";
+      }
 
-        return {
-          id: String(item.menuId || item.menuItemId || item.id || Math.random()),
-          name,
-          category,
-          price,
-          qty,
-        };
-      })
+      const price = item.unitPrice || item.price || 0;
+
+      return {
+        id: String(item.menuId || item.menuItemId || item.id || Math.random()),
+        name,
+        category,
+        price,
+        qty,
+      };
+    })
     : [];
 
   let status: OrderStatus = "Pending";
@@ -119,7 +120,7 @@ export async function fetchOrders(): Promise<Order[]> {
   const res = await fetch(`${API_BASE}/customer/orders`);
   if (!res.ok) throw new Error("Failed to fetch orders");
   const result = await res.json();
-  
+
   let rawOrders: any[] = [];
   if (Array.isArray(result)) {
     rawOrders = result;
@@ -176,7 +177,7 @@ export async function createOrder(order: Order): Promise<Order> {
 function mapOrderToBackendPayload(order: Order) {
   return {
     customer: {
-      fullName: order.customerName,
+      name: order.customerName,
       mobile: order.phone,
     },
     items: order.items.map((item) => ({
