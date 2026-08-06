@@ -389,9 +389,7 @@ export default function App() {
         setDetails({ name: "", phone: "", email: "", mode: "Takeaway", note: "" });
         setPayment("upi");
       } else {
-        console.log("Reached Razorpay Script Loading");
         const scriptLoaded = await loadRazorpayScript();
-        console.log("Script Loaded:", scriptLoaded);
         if (!scriptLoaded) {
           alert("Failed to load Razorpay payment portal. Please check your internet connection.");
           return;
