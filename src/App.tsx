@@ -617,10 +617,7 @@ export default function App() {
             [field]: value,
           }))
         }
-        onConfirm={() => {
-    console.log("CheckoutModal -> onConfirm");
-    confirmOrder();
-  }}
+        onConfirm={confirmOrder}
       />
 
       <LegalModal
