@@ -26,7 +26,7 @@ console.log("VITE_API_BASE_URL:", import.meta.env.VITE_API_BASE_URL);
 console.log("API_BASE:", API_BASE);
 
 // TODO(backend): flip to false once real endpoints are live.
-export const USE_MOCK = false;
+const USE_MOCK = true;
 
 const STORAGE_KEY = "vb_orders";
 
