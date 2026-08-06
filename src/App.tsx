@@ -15,7 +15,8 @@ import { COLORS } from "./data/colors";
 import { MENU, CATEGORIES, PROMO_HOT_PRICE } from "./data/menu";
 import { getMenu, getCategories } from "./api/menu";
 
-import { createOrder } from "./services/ordersApi";
+import { createOrder, createPayment, verifyPayment } from "./services/ordersApi";
+import { loadRazorpayScript } from "./utils/razorpay";
 import type { Order } from "./types";
 
 import type {
@@ -368,14 +369,80 @@ export default function App() {
       createdAt: new Date().toISOString(),
     };
 
-    await createOrder(order);
+    try {
+      const createRes = await createOrder(order);
+      
+      const backendOrder = createRes && (createRes as any).data ? (createRes as any).data : createRes;
+      const orderNumber = backendOrder.orderNumber || backendOrder.id || id;
+      const amountToPay = backendOrder.total || order.total;
 
-    alert(`Order placed successfully! Order ID: ${id}`);
+      if (payment === "cod") {
+        alert(`Order placed successfully! Order ID: ${orderNumber}`);
+        setCheckoutOpen(false);
+        setCart({});
+        setDetails({ name: "", phone: "", email: "", mode: "Takeaway", note: "" });
+        setPayment("upi");
+      } else {
+        const scriptLoaded = await loadRazorpayScript();
+        if (!scriptLoaded) {
+          alert("Failed to load Razorpay payment portal. Please check your internet connection.");
+          return;
+        }
 
-    setCheckoutOpen(false);
-    setCart({});
-    setDetails({ name: "", phone: "", email: "", mode: "Takeaway", note: "" });
-    setPayment("upi");
+        const initPaymentRes = await createPayment(orderNumber, amountToPay);
+        const paymentData = initPaymentRes && initPaymentRes.data ? initPaymentRes.data : initPaymentRes;
+        
+        const rzpOrderId = paymentData.razorpayOrderId;
+        const rzpKeyId = paymentData.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_mock";
+
+        const options = {
+          key: rzpKeyId,
+          amount: Math.round(amountToPay * 100),
+          currency: paymentData.currency || "INR",
+          name: "Velvet Brew",
+          description: `Order Payment - #${orderNumber}`,
+          order_id: rzpOrderId,
+          handler: async function (response: any) {
+            try {
+              await verifyPayment({
+                razorpayOrderId: response.razorpay_order_id || rzpOrderId,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              });
+
+              alert(`Payment successful! Order ID: ${orderNumber}`);
+              
+              setCheckoutOpen(false);
+              setCart({});
+              setDetails({ name: "", phone: "", email: "", mode: "Takeaway", note: "" });
+              setPayment("upi");
+            } catch (err: any) {
+              console.error("Payment verification failed:", err);
+              alert("Payment verification failed. Please contact support. Order ID: " + orderNumber);
+            }
+          },
+          prefill: {
+            name: details.name,
+            email: details.email,
+            contact: details.phone,
+          },
+          theme: {
+            color: "#C79A56",
+          },
+          modal: {
+            ondismiss: function () {
+              alert("Payment session closed. You can retry paying by clicking pay again.");
+            },
+          },
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.open();
+      }
+    } catch (err: any) {
+      console.error("Checkout process failed:", err);
+      alert("Checkout failed: " + err.message);
+    }
   };
   return (
     <main
