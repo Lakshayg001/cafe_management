@@ -15,7 +15,7 @@ import { COLORS } from "./data/colors";
 import { MENU, CATEGORIES, PROMO_HOT_PRICE } from "./data/menu";
 import { getMenu, getCategories } from "./api/menu";
 
-import { createOrder, createPayment, verifyPayment } from "./services/ordersApi";
+import { createOrder, createPayment, verifyPayment, USE_MOCK } from "./services/ordersApi";
 import { loadRazorpayScript } from "./utils/razorpay";
 import type { Order } from "./types";
 
@@ -378,6 +378,12 @@ export default function App() {
 
       if (payment === "cod") {
         alert(`Order placed successfully! Order ID: ${orderNumber}`);
+        setCheckoutOpen(false);
+        setCart({});
+        setDetails({ name: "", phone: "", email: "", mode: "Takeaway", note: "" });
+        setPayment("upi");
+      } else if (USE_MOCK) {
+        alert(`[Demo Mode] Payment simulated successfully! Order ID: ${orderNumber}`);
         setCheckoutOpen(false);
         setCart({});
         setDetails({ name: "", phone: "", email: "", mode: "Takeaway", note: "" });
