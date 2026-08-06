@@ -254,16 +254,12 @@ export default function CheckoutModal({
                     </div>
 
                     <button
-                        onClick={() => {
-                            alert("Button clicked");
-                            onConfirm();
-                        }}
+                        onClick={onConfirm}
                         className="w-full rounded-full py-3 mt-2 text-sm tracking-wide cursor-pointer"
                         style={{
                             background: COLORS.gold,
                             color: COLORS.espresso,
                         }}
-
                     >
                         {payment === "cod"
                             ? "Place Order"
