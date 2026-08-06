@@ -344,7 +344,7 @@ export default function App() {
   };
 
   const confirmOrder = async () => {
-    alert("confirmOrder started");
+    alert("STEP 1");
     console.log("confirmOrder called");
     const id = "VB" + Math.floor(100000 + Math.random() * 900000);
 
