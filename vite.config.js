@@ -6,8 +6,9 @@ export default defineConfig({
     server: {
         proxy: {
             "/api": {
-                target: "http://api.velvetbrew.in",
+                target: "https://api.velvetbrew.in",
                 changeOrigin: true,
+                secure: false,
             },
         },
     },

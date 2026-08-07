@@ -26,7 +26,7 @@ console.log("VITE_API_BASE_URL:", import.meta.env.VITE_API_BASE_URL);
 console.log("API_BASE:", API_BASE);
 
 // TODO(backend): flip to false once real endpoints are live.
-const USE_MOCK = true;
+const USE_MOCK = false;
 
 const STORAGE_KEY = "vb_orders";
 
@@ -237,3 +237,50 @@ export async function updateOrderPaid(order: Order): Promise<Order | null> {
   const result = await res.json();
   return result && result.data ? mapBackendOrderToFrontend(result.data) : null;
 }
+
+/** Create a payment order on Razorpay via backend */
+export async function createPayment(orderNumber: string, amount: number): Promise<any> {
+  if (USE_MOCK) {
+    return {
+      success: true,
+      message: "Mock payment order created",
+      data: {
+        razorpayOrderId: "order_mock_" + Math.floor(Math.random() * 100000),
+        amount: amount,
+        currency: "INR",
+        keyId: "rzp_test_mock",
+      },
+    };
+  }
+
+  const res = await fetch(`${API_BASE}/payments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ orderNumber, amount }),
+  });
+  if (!res.ok) throw new Error("Failed to initialize payment");
+  return res.json();
+}
+
+/** Verify a completed Razorpay payment transaction on the backend */
+export async function verifyPayment(data: {
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
+}): Promise<any> {
+  if (USE_MOCK) {
+    return {
+      success: true,
+      message: "Mock payment verified successfully",
+    };
+  }
+
+  const res = await fetch(`${API_BASE}/payments/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Payment verification failed");
+  return res.json();
+}
+
