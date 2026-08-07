@@ -6,6 +6,8 @@ import { db } from "./firebase/firebase";
 
 import "./index.css";
 
+
+
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import OfferStrip from "./components/OfferStrip";
@@ -391,10 +393,23 @@ export default function App() {
       });
 
       if (payment === "cod") {
+
+        await setDoc(doc(db, "payments", orderNumber), {
+          paid: false,
+          updatedAt: new Date().toISOString(),
+        });
+
         alert(`Order placed successfully! Order ID: ${orderNumber}`);
+
         setCheckoutOpen(false);
         setCart({});
-        setDetails({ name: "", phone: "", email: "", mode: "Takeaway", note: "" });
+        setDetails({
+          name: "",
+          phone: "",
+          email: "",
+          mode: "Takeaway",
+          note: "",
+        });
         setPayment("upi");
       } else {
         const scriptLoaded = await loadRazorpayScript();
@@ -421,6 +436,11 @@ export default function App() {
                 razorpayOrderId: response.razorpay_order_id || rzpOrderId,
                 razorpayPaymentId: response.razorpay_payment_id,
                 razorpaySignature: response.razorpay_signature,
+              });
+              await setDoc(doc(db, "payments", orderNumber), {
+                paid: true,
+                paymentId: response.razorpay_payment_id,
+                updatedAt: new Date().toISOString(),
               });
 
               alert(`Payment successful! Order ID: ${orderNumber}`);

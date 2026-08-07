@@ -4,6 +4,8 @@ import { LogOut, RefreshCw, PlusCircle } from "lucide-react";
 import { COLORS } from "../data/colors";
 import { fetchOrders, updateOrderStatus, updateOrderPaid } from "../services/ordersApi";
 import { logout } from "../services/adminAuth";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../firebase/firebase";
 import OrderCard from "../components/admin/OrderCard";
 import PlaceOrderModal from "../components/admin/PlaceOrderModal";
 import logo from "../assets/velvet-brew-logo.jpg";
@@ -28,7 +30,22 @@ export default function AdminDashboard() {
 
   const load = useCallback(async () => {
     const data = await fetchOrders();
-    setOrders(data);
+
+    const snapshot = await getDocs(collection(db, "payments"));
+
+    const paymentMap: Record<string, boolean> = {};
+
+    snapshot.forEach((doc) => {
+      const d = doc.data();
+      paymentMap[doc.id] = d.paid;
+    });
+
+    const mergedOrders = data.map((order) => ({
+      ...order,
+      paid: paymentMap[order.id] ?? order.paid,
+    }));
+
+    setOrders(mergedOrders);
     setLoading(false);
   }, []);
 
@@ -142,7 +159,7 @@ export default function AdminDashboard() {
           </div>
         )}
       </main>
-      
+
       <PlaceOrderModal
         open={placeOrderOpen}
         onClose={() => setPlaceOrderOpen(false)}
