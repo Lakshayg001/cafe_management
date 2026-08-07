@@ -371,7 +371,7 @@ export default function App() {
 
     try {
       const createRes = await createOrder(order);
-      
+
       const backendOrder = createRes && (createRes as any).data ? (createRes as any).data : createRes;
       const orderNumber = backendOrder.orderNumber || backendOrder.id || id;
       const amountToPay = backendOrder.total || order.total;
@@ -391,10 +391,9 @@ export default function App() {
 
         const initPaymentRes = await createPayment(orderNumber, amountToPay);
         const paymentData = initPaymentRes && initPaymentRes.data ? initPaymentRes.data : initPaymentRes;
-        
-        const rzpOrderId = paymentData.razorpayOrderId;
-        const rzpKeyId = paymentData.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_mock";
 
+        const rzpOrderId = paymentData.orderId;
+        const rzpKeyId = paymentData.key;
         const options = {
           key: rzpKeyId,
           amount: Math.round(amountToPay * 100),
@@ -411,7 +410,7 @@ export default function App() {
               });
 
               alert(`Payment successful! Order ID: ${orderNumber}`);
-              
+
               setCheckoutOpen(false);
               setCart({});
               setDetails({ name: "", phone: "", email: "", mode: "Takeaway", note: "" });
@@ -563,7 +562,7 @@ export default function App() {
           <div>
             © {new Date().getFullYear()} Velvet Brew. All rights reserved.
           </div>
-          
+
           <div className="flex items-center gap-3">
             <button
               onClick={() => setLegalOpen("privacy")}
