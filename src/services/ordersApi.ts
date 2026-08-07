@@ -145,6 +145,25 @@ export async function createOrder(order: Order): Promise<Order> {
     writeStore(orders);
     return order;
   }
+  console.log("Order Items", order.items);
+
+  console.log(
+    "Payload",
+    order.items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      menuId:
+        item.category === "hot"
+          ? 1
+          : item.category === "cold"
+            ? 2
+            : item.category === "shakes"
+              ? 3
+              : 4,
+      menuItemId: Number(item.id) || Number(item.id.replace(/\D/g, "")) || 0,
+    }))
+  );
 
   const res = await fetch(`${API_BASE}/customer/orders`, {
     method: "POST",
