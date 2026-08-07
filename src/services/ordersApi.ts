@@ -181,7 +181,7 @@ export async function createOrder(order: Order): Promise<Order> {
 function mapOrderToBackendPayload(order: Order) {
   return {
     customer: {
-      name: order.customerName,
+      fullName: order.customerName,
       mobile: order.phone,
     },
     items: order.items.map((item) => ({
