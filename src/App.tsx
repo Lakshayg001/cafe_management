@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Coffee, Snowflake, CupSoda, UtensilsCrossed } from "lucide-react";
 
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "./firebase/firebase";
+
 import "./index.css";
 
 import Header from "./components/Header";
@@ -374,7 +377,18 @@ export default function App() {
 
       const backendOrder = createRes && (createRes as any).data ? (createRes as any).data : createRes;
       const orderNumber = backendOrder.orderNumber || backendOrder.id || id;
+
       const amountToPay = backendOrder.total || order.total;
+      await setDoc(doc(db, "payments", orderNumber), {
+        orderNumber,
+        customerName: details.name,
+        phone: details.phone,
+        paymentMethod: payment,
+        paymentStatus: payment === "cod" ? "PENDING" : "PAID",
+        paid: payment !== "cod",
+        amount: amountToPay,
+        createdAt: serverTimestamp(),
+      });
 
       if (payment === "cod") {
         alert(`Order placed successfully! Order ID: ${orderNumber}`);
