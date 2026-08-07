@@ -207,14 +207,17 @@ export async function updateOrderStatus(order: Order): Promise<Order | null> {
     return orders[idx];
   }
 
-  const res = await fetch(`${API_BASE}/customer/orders?orderNumber=${order.id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(mapOrderToBackendPayload(order)),
-  });
+  const res = await fetch(
+    `${API_BASE}/customer/orders?orderNumber=${order.id}&orderStatus=${order.status.toUpperCase()}`,
+    {
+      method: "PATCH",
+    }
+  );
+
   if (!res.ok) throw new Error("Failed to update order status");
+
   const result = await res.json();
-  return result && result.data ? mapBackendOrderToFrontend(result.data) : null;
+  return result?.data ? mapBackendOrderToFrontend(result.data) : null;
 }
 
 /** Mark an order paid/unpaid — useful once real payment webhooks exist. */
