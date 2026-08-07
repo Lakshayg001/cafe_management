@@ -44,6 +44,8 @@ export default function AdminDashboard() {
       ...order,
       paid: paymentMap[order.id] ?? order.paid,
     }));
+    console.log("Firestore paymentMap", paymentMap);
+    console.log("Merged Orders", mergedOrders);
 
     setOrders(mergedOrders);
     setLoading(false);
