@@ -37,9 +37,14 @@ export default function App() {
   const [activeCategory, setActiveCategory] =
     useState<CategoryId>("hot");
 
-  const [cart, setCart] = useState<
-    Record<string, CartItem>
-  >({});
+  const [cart, setCart] = useState<Record<string, CartItem>>(() => {
+    try {
+      const saved = localStorage.getItem("vb_cart");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
 
   const [cartOpen, setCartOpen] =
     useState(false);
@@ -53,16 +58,76 @@ export default function App() {
   const [payment, setPayment] =
     useState<PaymentMethod>("upi");
 
-  const [details, setDetails] =
-    useState<Details>({
-      name: "",
-      phone: "",
-      email: "",
-      mode: "Takeaway",
-      note: "",
-    });
+  const [details, setDetails] = useState<Details>(() => {
+    try {
+      const saved = localStorage.getItem("vb_details");
+      return saved ? JSON.parse(saved) : {
+        name: "",
+        phone: "",
+        email: "",
+        mode: "Takeaway",
+        note: "",
+      };
+    } catch {
+      return {
+        name: "",
+        phone: "",
+        email: "",
+        mode: "Takeaway",
+        note: "",
+      };
+    }
+  });
 
   const [menu, setMenu] = useState<Record<CategoryId, MenuItem[]>>(MENU);
+
+  useEffect(() => {
+    localStorage.setItem("vb_cart", JSON.stringify(cart));
+  }, [cart]);
+
+  useEffect(() => {
+    localStorage.setItem("vb_details", JSON.stringify(details));
+  }, [details]);
+
+  useEffect(() => {
+    const pendingStr = localStorage.getItem("vb_pending_checkout");
+    if (!pendingStr) return;
+
+    async function checkPendingOrder() {
+      try {
+        const pending = JSON.parse(pendingStr as string);
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL ?? "/api/v1"}/customer/orders`);
+        if (!res.ok) throw new Error("Failed to fetch orders");
+        const result = await res.json();
+        const ordersList = result.data || [];
+        const backendOrder = ordersList.find((o: any) => o.orderNumber === pending.orderNumber);
+
+        if (backendOrder) {
+          if (backendOrder.paymentStatus === "PAID" || ["ACCEPTED", "PREPARING", "READY", "COMPLETED"].includes(backendOrder.orderStatus)) {
+            await setDoc(doc(db, "payments", pending.orderNumber), {
+              paid: true,
+              updatedAt: new Date().toISOString(),
+            }, { merge: true });
+
+            localStorage.removeItem("vb_pending_checkout");
+            setCart({});
+            alert(`Your payment for order #${pending.orderNumber} was successful!`);
+            return;
+          }
+        }
+
+        setCart(pending.cart);
+        setDetails(pending.details);
+        setPayment(pending.payment);
+        setCheckoutOpen(true);
+        localStorage.removeItem("vb_pending_checkout");
+      } catch (err) {
+        console.error("Error checking pending checkout:", err);
+      }
+    }
+
+    checkPendingOrder();
+  }, []);
   const [categories, setCategories] = useState<Category[]>(CATEGORIES);
   const [menuLoading, setMenuLoading] = useState(true);
   const [menuError, setMenuError] = useState<string | null>(null);
@@ -412,9 +477,19 @@ export default function App() {
         });
         setPayment("upi");
       } else {
+        // Save pending checkout state to localStorage before opening Razorpay
+        localStorage.setItem("vb_pending_checkout", JSON.stringify({
+          orderNumber,
+          cart,
+          details,
+          payment,
+          amountToPay
+        }));
+
         const scriptLoaded = await loadRazorpayScript();
         if (!scriptLoaded) {
           alert("Failed to load Razorpay payment portal. Please check your internet connection.");
+          localStorage.removeItem("vb_pending_checkout");
           return;
         }
 
@@ -445,6 +520,7 @@ export default function App() {
 
               alert(`Payment successful! Order ID: ${orderNumber}`);
 
+              localStorage.removeItem("vb_pending_checkout");
               setCheckoutOpen(false);
               setCart({});
               setDetails({ name: "", phone: "", email: "", mode: "Takeaway", note: "" });
@@ -464,9 +540,11 @@ export default function App() {
           },
           modal: {
             ondismiss: function () {
+              localStorage.removeItem("vb_pending_checkout");
               alert("Payment session closed. You can retry paying by clicking pay again.");
             },
           },
+          redirect: false, // Prevent top-level redirect on mobile browsers
         };
 
         const rzp = new (window as any).Razorpay(options);
