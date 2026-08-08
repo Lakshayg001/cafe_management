@@ -212,11 +212,13 @@ export default function PlaceOrderModal({ open, onClose, onSuccess }: PlaceOrder
         createdAt: new Date().toISOString(),
       };
 
-      await createOrder(newOrder);
+      const createRes = await createOrder(newOrder);
+      const backendOrder = createRes && (createRes as any).data ? (createRes as any).data : createRes;
+      const orderNumber = backendOrder.orderNumber || backendOrder.id || orderId;
 
       // Log payment record in Firestore payments collection for dashboard synchronization
-      await setDoc(doc(db, "payments", orderId), {
-        orderNumber: orderId,
+      await setDoc(doc(db, "payments", orderNumber), {
+        orderNumber,
         customerName: details.name,
         phone: details.phone,
         paymentMethod: payment,
