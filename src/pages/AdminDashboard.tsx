@@ -33,17 +33,24 @@ export default function AdminDashboard() {
 
     const snapshot = await getDocs(collection(db, "payments"));
 
-    const paymentMap: Record<string, boolean> = {};
+    const paymentMap: Record<string, { paid: boolean; paymentMethod: any }> = {};
 
     snapshot.forEach((doc) => {
       const d = doc.data();
-      paymentMap[doc.id] = d.paid;
+      paymentMap[doc.id] = {
+        paid: d.paid,
+        paymentMethod: d.paymentMethod,
+      };
     });
 
-    const mergedOrders = data.map((order) => ({
-      ...order,
-      paid: paymentMap[order.id] ?? order.paid,
-    }));
+    const mergedOrders = data.map((order) => {
+      const paymentInfo = paymentMap[order.id];
+      return {
+        ...order,
+        paid: paymentInfo ? paymentInfo.paid : order.paid,
+        paymentMethod: paymentInfo && paymentInfo.paymentMethod ? paymentInfo.paymentMethod : order.paymentMethod,
+      };
+    });
     console.log("Firestore paymentMap", paymentMap);
     console.log("Merged Orders", mergedOrders);
 

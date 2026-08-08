@@ -25,7 +25,11 @@ const NEXT_STEP: Partial<Record<OrderStatus, { label: string; next: OrderStatus 
 };
 
 function timeAgo(iso: string): string {
-  const diffMs = Date.now() - new Date(iso).getTime();
+  if (!iso) return "just now";
+  const cleanIso = iso.endsWith("Z") || iso.includes("+") || (iso.includes("-") && iso.lastIndexOf("-") > 7)
+    ? iso
+    : iso + "Z";
+  const diffMs = Date.now() - new Date(cleanIso).getTime();
   const mins = Math.max(0, Math.round(diffMs / 60000));
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins} min ago`;
