@@ -6,6 +6,8 @@ import { CATEGORIES, MENU, PROMO_HOT_PRICE } from "../../data/menu";
 import { getMenu, getCategories } from "../../api/menu";
 import { createOrder } from "../../services/ordersApi";
 import type { Category, MenuItem, CategoryId, Details, PaymentMethod, Order, OrderItemRecord } from "../../types";
+import { db } from "../../firebase/firebase";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 interface PlaceOrderModalProps {
   open: boolean;
@@ -211,6 +213,19 @@ export default function PlaceOrderModal({ open, onClose, onSuccess }: PlaceOrder
       };
 
       await createOrder(newOrder);
+
+      // Log payment record in Firestore payments collection for dashboard synchronization
+      await setDoc(doc(db, "payments", orderId), {
+        orderNumber: orderId,
+        customerName: details.name,
+        phone: details.phone,
+        paymentMethod: payment,
+        paymentStatus: payment === "cod" ? "PENDING" : "PAID",
+        paid: payment !== "cod",
+        amount: total,
+        createdAt: serverTimestamp(),
+      });
+
       onSuccess();
       
       // Reset state

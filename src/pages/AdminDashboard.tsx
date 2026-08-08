@@ -10,6 +10,8 @@ import OrderCard from "../components/admin/OrderCard";
 import PlaceOrderModal from "../components/admin/PlaceOrderModal";
 import logo from "../assets/velvet-brew-logo.jpg";
 import type { Order, OrderStatus } from "../types";
+import { getMenu } from "../api/menu";
+import { PROMO_HOT_PRICE } from "../data/menu";
 
 const FILTERS: Array<"All" | OrderStatus> = [
   "All",
@@ -29,33 +31,85 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
 
   const load = useCallback(async () => {
-    const data = await fetchOrders();
+    try {
+      const [data, apiItems] = await Promise.all([
+        fetchOrders(),
+        getMenu().catch((err) => {
+          console.error("Error fetching menu in admin", err);
+          return [];
+        }),
+      ]);
 
-    const snapshot = await getDocs(collection(db, "payments"));
+      const menuMap = new Map<number, any>(apiItems.map((item: any) => [item.id, item]));
 
-    const paymentMap: Record<string, { paid: boolean; paymentMethod: any }> = {};
+      const snapshot = await getDocs(collection(db, "payments"));
 
-    snapshot.forEach((doc) => {
-      const d = doc.data();
-      paymentMap[doc.id] = {
-        paid: d.paid,
-        paymentMethod: d.paymentMethod,
-      };
-    });
+      const paymentMap: Record<string, { paid: boolean; paymentMethod: any }> = {};
 
-    const mergedOrders = data.map((order) => {
-      const paymentInfo = paymentMap[order.id];
-      return {
-        ...order,
-        paid: paymentInfo ? paymentInfo.paid : order.paid,
-        paymentMethod: paymentInfo && paymentInfo.paymentMethod ? paymentInfo.paymentMethod : order.paymentMethod,
-      };
-    });
-    console.log("Firestore paymentMap", paymentMap);
-    console.log("Merged Orders", mergedOrders);
+      snapshot.forEach((doc) => {
+        const d = doc.data();
+        paymentMap[doc.id] = {
+          paid: d.paid,
+          paymentMethod: d.paymentMethod,
+        };
+      });
 
-    setOrders(mergedOrders);
-    setLoading(false);
+      const mergedOrders = data.map((order) => {
+        const paymentInfo = paymentMap[order.id];
+
+        let subtotal = 0;
+        let total = 0;
+
+        const items = order.items.map((it) => {
+          const idNum = Number(it.id) || Number(it.id.replace(/\D/g, "")) || 0;
+          const menuItem = menuMap.get(idNum);
+
+          let price = it.price;
+          let originalPrice = it.price;
+
+          if (menuItem) {
+            originalPrice = menuItem.price;
+            price = menuItem.offerPrice !== null && menuItem.offerPrice !== undefined
+              ? menuItem.offerPrice
+              : menuItem.price;
+
+            const isHot = menuItem.categoryId === 1 || (menuItem.categoryName || "").toLowerCase().includes("hot");
+            if (isHot) {
+              price = Math.min(price, PROMO_HOT_PRICE);
+            }
+          }
+
+          subtotal += originalPrice * it.qty;
+          total += price * it.qty;
+
+          return {
+            ...it,
+            price,
+          };
+        });
+
+        const savings = subtotal - total;
+
+        return {
+          ...order,
+          items,
+          subtotal,
+          total,
+          savings,
+          paid: paymentInfo ? paymentInfo.paid : order.paid,
+          paymentMethod: paymentInfo && paymentInfo.paymentMethod ? paymentInfo.paymentMethod : order.paymentMethod,
+        };
+      });
+
+      console.log("Firestore paymentMap", paymentMap);
+      console.log("Merged Orders", mergedOrders);
+
+      setOrders(mergedOrders);
+    } catch (err) {
+      console.error("Admin dashboard load error:", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
