@@ -397,7 +397,7 @@ export default function App() {
         await setDoc(doc(db, "payments", orderNumber), {
           paid: false,
           updatedAt: new Date().toISOString(),
-        });
+        }, { merge: true });
 
         alert(`Order placed successfully! Order ID: ${orderNumber}`);
 
@@ -441,7 +441,7 @@ export default function App() {
                 paid: true,
                 paymentId: response.razorpay_payment_id,
                 updatedAt: new Date().toISOString(),
-              });
+              }, { merge: true });
 
               alert(`Payment successful! Order ID: ${orderNumber}`);
 

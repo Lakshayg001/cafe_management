@@ -92,7 +92,7 @@ export default function OrderCard({ order, onStatusChange, onTogglePaid }: Order
           {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
         <span className="flex items-center gap-1 text-xs" style={{ color: COLORS.muted }}>
-          <PayIcon size={13} /> {PAY_LABEL[order.paymentMethod]}
+          <PayIcon size={13} /> {order.paid ? "Paid" : "Cash on Delivery"}
         </span>
       </div>
 
