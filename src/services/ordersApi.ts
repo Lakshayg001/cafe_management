@@ -153,15 +153,8 @@ export async function createOrder(order: Order): Promise<Order> {
       id: item.id,
       name: item.name,
       category: item.category,
-      menuId:
-        item.category === "hot"
-          ? 1
-          : item.category === "cold"
-            ? 2
-            : item.category === "shakes"
-              ? 3
-              : 4,
-      menuItemId: Number(item.id) || Number(item.id.replace(/\D/g, "")) || 0,
+      menuId: Number(item.id) || Number(item.id.replace(/\D/g, "")) || 0,
+      quantity: item.qty,
     }))
   );
 
@@ -175,17 +168,9 @@ export async function createOrder(order: Order): Promise<Order> {
         email: order.email || "",
       },
       items: order.items.map((item) => {
-        let menuId = 1;
-        if (item.category === "hot") menuId = 1;
-        else if (item.category === "cold") menuId = 2;
-        else if (item.category === "shakes") menuId = 3;
-        else if (item.category === "bites") menuId = 4;
-
-        const menuItemId = Number(item.id) || Number(item.id.replace(/\D/g, "")) || 0;
-
+        const menuId = Number(item.id) || Number(item.id.replace(/\D/g, "")) || 0;
         return {
           menuId,
-          menuItemId,
           quantity: item.qty,
         };
       }),

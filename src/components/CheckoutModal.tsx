@@ -272,8 +272,7 @@ export default function CheckoutModal({
                             color: COLORS.clay,
                         }}
                     >
-                        Demo checkout — no real payment
-                        is processed.
+
                     </p>
                 </div>
             </div>
