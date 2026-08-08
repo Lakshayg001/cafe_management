@@ -440,29 +440,21 @@ export default function App() {
     };
 
     try {
-      const createRes = await createOrder(order);
-
-      const backendOrder = createRes && (createRes as any).data ? (createRes as any).data : createRes;
-      const orderNumber = backendOrder.orderNumber || backendOrder.id || id;
-
-      const amountToPay = backendOrder.total || order.total;
-      await setDoc(doc(db, "payments", orderNumber), {
-        orderNumber,
-        customerName: details.name,
-        phone: details.phone,
-        paymentMethod: payment,
-        paymentStatus: payment === "cod" ? "PENDING" : "PAID",
-        paid: payment !== "cod",
-        amount: amountToPay,
-        createdAt: serverTimestamp(),
-      });
-
       if (payment === "cod") {
+        const createRes = await createOrder(order);
+        const backendOrder = createRes && (createRes as any).data ? (createRes as any).data : createRes;
+        const orderNumber = backendOrder.orderNumber || backendOrder.id || id;
 
         await setDoc(doc(db, "payments", orderNumber), {
+          orderNumber,
+          customerName: details.name,
+          phone: details.phone,
+          paymentMethod: payment,
+          paymentStatus: "PENDING",
           paid: false,
-          updatedAt: new Date().toISOString(),
-        }, { merge: true });
+          amount: total,
+          createdAt: serverTimestamp(),
+        });
 
         alert(`Order placed successfully! Order ID: ${orderNumber}`);
 
@@ -479,11 +471,11 @@ export default function App() {
       } else {
         // Save pending checkout state to localStorage before opening Razorpay
         localStorage.setItem("vb_pending_checkout", JSON.stringify({
-          orderNumber,
+          orderNumber: id,
           cart,
           details,
           payment,
-          amountToPay
+          amountToPay: total
         }));
 
         const scriptLoaded = await loadRazorpayScript();
@@ -493,30 +485,43 @@ export default function App() {
           return;
         }
 
-        const initPaymentRes = await createPayment(orderNumber, amountToPay);
+        const initPaymentRes = await createPayment(id, total);
         const paymentData = initPaymentRes && initPaymentRes.data ? initPaymentRes.data : initPaymentRes;
 
         const rzpOrderId = paymentData.orderId;
         const rzpKeyId = paymentData.key;
         const options = {
           key: rzpKeyId,
-          amount: Math.round(amountToPay * 100),
+          amount: Math.round(total * 100),
           currency: paymentData.currency || "INR",
           name: "Velvet Brew",
-          description: `Order Payment - #${orderNumber}`,
+          description: `Order Payment - #${id}`,
           order_id: rzpOrderId,
           handler: async function (response: any) {
             try {
+              // 1. Verify payment on backend
               await verifyPayment({
                 razorpayOrderId: response.razorpay_order_id || rzpOrderId,
                 razorpayPaymentId: response.razorpay_payment_id,
                 razorpaySignature: response.razorpay_signature,
               });
+
+              // 2. Only now create the backend customer order
+              const createRes = await createOrder(order);
+              const backendOrder = createRes && (createRes as any).data ? (createRes as any).data : createRes;
+              const orderNumber = backendOrder.orderNumber || backendOrder.id || id;
+
+              // 3. Save Firestore PAID record
               await setDoc(doc(db, "payments", orderNumber), {
+                orderNumber,
+                customerName: details.name,
+                phone: details.phone,
+                paymentMethod: payment,
+                paymentStatus: "PAID",
                 paid: true,
-                paymentId: response.razorpay_payment_id,
-                updatedAt: new Date().toISOString(),
-              }, { merge: true });
+                amount: total,
+                createdAt: serverTimestamp(),
+              });
 
               alert(`Payment successful! Order ID: ${orderNumber}`);
 
@@ -526,8 +531,8 @@ export default function App() {
               setDetails({ name: "", phone: "", email: "", mode: "Takeaway", note: "" });
               setPayment("upi");
             } catch (err: any) {
-              console.error("Payment verification failed:", err);
-              alert("Payment verification failed. Please contact support. Order ID: " + orderNumber);
+              console.error("Payment verification or order creation failed:", err);
+              alert("Payment verification or order creation failed. Please contact support.");
             }
           },
           prefill: {
