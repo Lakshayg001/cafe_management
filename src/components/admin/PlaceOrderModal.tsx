@@ -4,9 +4,10 @@ import { COLORS } from "../../data/colors";
 import { rupee } from "../../utils/currency";
 import { CATEGORIES, MENU, PROMO_HOT_PRICE } from "../../data/menu";
 import { getMenu, getCategories } from "../../api/menu";
-import { createOrder } from "../../services/ordersApi";
+import { createOrder, createPayment, verifyPayment } from "../../services/ordersApi";
 import type { Category, MenuItem, CategoryId, Details, PaymentMethod, Order, OrderItemRecord } from "../../types";
 import { db } from "../../firebase/firebase";
+import { loadRazorpayScript } from "../../utils/razorpay";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 interface PlaceOrderModalProps {
@@ -212,29 +213,110 @@ export default function PlaceOrderModal({ open, onClose, onSuccess }: PlaceOrder
         createdAt: new Date().toISOString(),
       };
 
-      const createRes = await createOrder(newOrder);
-      const backendOrder = createRes && (createRes as any).data ? (createRes as any).data : createRes;
-      const orderNumber = backendOrder.orderNumber || backendOrder.id || orderId;
+      if (payment === "cod") {
+        const createRes = await createOrder(newOrder);
+        const backendOrder = createRes && (createRes as any).data ? (createRes as any).data : createRes;
+        const orderNumber = backendOrder.orderNumber || backendOrder.id || orderId;
 
-      // Log payment record in Firestore payments collection for dashboard synchronization
-      await setDoc(doc(db, "payments", orderNumber), {
-        orderNumber,
-        customerName: details.name,
-        phone: details.phone,
-        paymentMethod: payment,
-        paymentStatus: payment === "cod" ? "PENDING" : "PAID",
-        paid: payment !== "cod",
-        amount: total,
-        createdAt: serverTimestamp(),
-      });
+        // Log payment record in Firestore payments collection for dashboard synchronization
+        await setDoc(doc(db, "payments", orderNumber), {
+          orderNumber,
+          customerName: details.name,
+          phone: details.phone,
+          paymentMethod: payment,
+          paymentStatus: "PENDING",
+          paid: false,
+          amount: total,
+          createdAt: serverTimestamp(),
+        });
 
-      onSuccess();
-      
-      // Reset state
-      setCart({});
-      setDetails({ name: "", phone: "", email: "", mode: "Takeaway", note: "" });
-      setPayment("upi");
-      onClose();
+        onSuccess();
+        
+        // Reset state
+        setCart({});
+        setDetails({ name: "", phone: "", email: "", mode: "Takeaway", note: "" });
+        setPayment("upi");
+        setSubmitting(false);
+        onClose();
+      } else {
+        const scriptLoaded = await loadRazorpayScript();
+        if (!scriptLoaded) {
+          setError("Failed to load Razorpay payment portal. Please check your internet connection.");
+          setSubmitting(false);
+          return;
+        }
+
+        const initPaymentRes = await createPayment(orderId, total);
+        const paymentData = initPaymentRes && initPaymentRes.data ? initPaymentRes.data : initPaymentRes;
+
+        const rzpOrderId = paymentData.orderId;
+        const rzpKeyId = paymentData.key;
+        const options = {
+          key: rzpKeyId,
+          amount: Math.round(total * 100),
+          currency: paymentData.currency || "INR",
+          name: "Velvet Brew",
+          description: `POS Order Payment - #${orderId}`,
+          order_id: rzpOrderId,
+          handler: async function (response: any) {
+            try {
+              setSubmitting(true);
+              // 1. Verify payment on backend
+              await verifyPayment({
+                razorpayOrderId: response.razorpay_order_id || rzpOrderId,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              });
+
+              // 2. Only now create the backend customer order
+              const createRes = await createOrder(newOrder);
+              const backendOrder = createRes && (createRes as any).data ? (createRes as any).data : createRes;
+              const orderNumber = backendOrder.orderNumber || backendOrder.id || orderId;
+
+              // 3. Save PAID record to Firestore payments
+              await setDoc(doc(db, "payments", orderNumber), {
+                orderNumber,
+                customerName: details.name,
+                phone: details.phone,
+                paymentMethod: payment,
+                paymentStatus: "PAID",
+                paid: true,
+                amount: total,
+                createdAt: serverTimestamp(),
+              });
+
+              onSuccess();
+              
+              // Reset state
+              setCart({});
+              setDetails({ name: "", phone: "", email: "", mode: "Takeaway", note: "" });
+              setPayment("upi");
+              onClose();
+            } catch (err: any) {
+              console.error("Payment verification or order creation failed:", err);
+              setError("Payment verification or order creation failed. Please contact support.");
+            } finally {
+              setSubmitting(false);
+            }
+          },
+          prefill: {
+            name: details.name,
+            email: details.email,
+            contact: details.phone,
+          },
+          theme: {
+            color: "#C79A56",
+          },
+          modal: {
+            ondismiss: function () {
+              setSubmitting(false);
+            },
+          },
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.open();
+      }
     } catch (err: any) {
       console.error(err);
       setError("Failed to place order. Please try again.");
