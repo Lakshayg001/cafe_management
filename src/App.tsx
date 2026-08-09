@@ -414,6 +414,11 @@ export default function App() {
   };
 
   const confirmOrder = async () => {
+    if (!details.phone || !details.phone.trim()) {
+      alert("Please enter phone number");
+      return;
+    }
+
     const id = "VB" + Math.floor(100000 + Math.random() * 900000);
 
     const order: Order = {
@@ -642,7 +647,7 @@ export default function App() {
               }}
             >
               <p>Monday – Sunday</p>
-              <p>05:00 PM – 11:00 PM</p>
+              <p>05:00 PM – 12:00 AM</p>
             </div>
           </div>
 
@@ -664,7 +669,7 @@ export default function App() {
             >
               <p>Opp. City Hospital, Avas Vikas Road, Shastri Nagar, Civil Lines, Budaun, Uttar Pradesh – 243601</p>
               <p>Contact: +91 8399999090</p>
-              <p>hello@velvetbrew.com</p>
+              <p>officialvelvetbrew@gmail.com</p>
             </div>
           </div>
         </div>

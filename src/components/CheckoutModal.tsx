@@ -104,7 +104,7 @@ export default function CheckoutModal({
 
                     <Field
                         icon={Phone}
-                        placeholder="Phone Number"
+                        placeholder="Phone Number (mandatory)"
                         value={details.phone}
                         onChange={(value) =>
                             onDetailsChange("phone", value)
@@ -113,7 +113,7 @@ export default function CheckoutModal({
 
                     <Field
                         icon={Mail}
-                        placeholder="Email Address"
+                        placeholder="Email Address (optional)"
                         value={details.email}
                         onChange={(value) =>
                             onDetailsChange("email", value)

@@ -74,7 +74,7 @@ export default function Header({
                     </a>
 
                     <a
-                        href="#offer"
+                        href="#"
                         style={{
                             color: COLORS.cream,
                         }}
@@ -183,4 +183,4 @@ export default function Header({
             )}
         </header>
     );
-}
+}
