@@ -6,9 +6,7 @@ import { CATEGORIES, MENU, PROMO_HOT_PRICE } from "../../data/menu";
 import { getMenu, getCategories } from "../../api/menu";
 import { createOrder, createPayment, verifyPayment } from "../../services/ordersApi";
 import type { Category, MenuItem, CategoryId, Details, PaymentMethod, Order, OrderItemRecord } from "../../types";
-import { db } from "../../firebase/firebase";
 import { loadRazorpayScript } from "../../utils/razorpay";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 interface PlaceOrderModalProps {
   open: boolean;
@@ -218,18 +216,6 @@ export default function PlaceOrderModal({ open, onClose, onSuccess }: PlaceOrder
         const backendOrder = createRes && (createRes as any).data ? (createRes as any).data : createRes;
         const orderNumber = backendOrder.orderNumber || backendOrder.id || orderId;
 
-        // Log payment record in Firestore payments collection for dashboard synchronization
-        await setDoc(doc(db, "payments", orderNumber), {
-          orderNumber,
-          customerName: details.name,
-          phone: details.phone,
-          paymentMethod: payment,
-          paymentStatus: "PENDING",
-          paid: false,
-          amount: total,
-          createdAt: serverTimestamp(),
-        });
-
         onSuccess();
         
         // Reset state
@@ -272,18 +258,6 @@ export default function PlaceOrderModal({ open, onClose, onSuccess }: PlaceOrder
               const createRes = await createOrder(newOrder);
               const backendOrder = createRes && (createRes as any).data ? (createRes as any).data : createRes;
               const orderNumber = backendOrder.orderNumber || backendOrder.id || orderId;
-
-              // 3. Save PAID record to Firestore payments
-              await setDoc(doc(db, "payments", orderNumber), {
-                orderNumber,
-                customerName: details.name,
-                phone: details.phone,
-                paymentMethod: payment,
-                paymentStatus: "PAID",
-                paid: true,
-                amount: total,
-                createdAt: serverTimestamp(),
-              });
 
               onSuccess();
               

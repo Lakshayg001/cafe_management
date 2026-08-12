@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Coffee, Snowflake, CupSoda, UtensilsCrossed } from "lucide-react";
 
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "./firebase/firebase";
-
 import "./index.css";
 
 
@@ -104,11 +101,6 @@ export default function App() {
 
         if (backendOrder) {
           if (backendOrder.paymentStatus === "PAID" || ["ACCEPTED", "PREPARING", "READY", "COMPLETED"].includes(backendOrder.orderStatus)) {
-            await setDoc(doc(db, "payments", pending.orderNumber), {
-              paid: true,
-              updatedAt: new Date().toISOString(),
-            }, { merge: true });
-
             localStorage.removeItem("vb_pending_checkout");
             setCart({});
             alert(`Your payment for order #${pending.orderNumber} was successful!`);
@@ -450,17 +442,6 @@ export default function App() {
         const backendOrder = createRes && (createRes as any).data ? (createRes as any).data : createRes;
         const orderNumber = backendOrder.orderNumber || backendOrder.id || id;
 
-        await setDoc(doc(db, "payments", orderNumber), {
-          orderNumber,
-          customerName: details.name,
-          phone: details.phone,
-          paymentMethod: payment,
-          paymentStatus: "PENDING",
-          paid: false,
-          amount: total,
-          createdAt: serverTimestamp(),
-        });
-
         alert(`Order placed successfully! Order ID: ${orderNumber}`);
 
         setCheckoutOpen(false);
@@ -515,18 +496,6 @@ export default function App() {
               const createRes = await createOrder(order);
               const backendOrder = createRes && (createRes as any).data ? (createRes as any).data : createRes;
               const orderNumber = backendOrder.orderNumber || backendOrder.id || id;
-
-              // 3. Save Firestore PAID record
-              await setDoc(doc(db, "payments", orderNumber), {
-                orderNumber,
-                customerName: details.name,
-                phone: details.phone,
-                paymentMethod: payment,
-                paymentStatus: "PAID",
-                paid: true,
-                amount: total,
-                createdAt: serverTimestamp(),
-              });
 
               alert(`Payment successful! Order ID: ${orderNumber}`);
 

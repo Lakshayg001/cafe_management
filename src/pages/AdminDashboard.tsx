@@ -4,8 +4,6 @@ import { LogOut, RefreshCw, PlusCircle } from "lucide-react";
 import { COLORS } from "../data/colors";
 import { fetchOrders, updateOrderStatus, updateOrderPaid } from "../services/ordersApi";
 import { logout } from "../services/adminAuth";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../firebase/firebase";
 import OrderCard from "../components/admin/OrderCard";
 import PlaceOrderModal from "../components/admin/PlaceOrderModal";
 import logo from "../assets/velvet-brew-logo.jpg";
@@ -42,21 +40,7 @@ export default function AdminDashboard() {
 
       const menuMap = new Map<number, any>(apiItems.map((item: any) => [item.id, item]));
 
-      const snapshot = await getDocs(collection(db, "payments"));
-
-      const paymentMap: Record<string, { paid: boolean; paymentMethod: any }> = {};
-
-      snapshot.forEach((doc) => {
-        const d = doc.data();
-        paymentMap[doc.id] = {
-          paid: d.paid,
-          paymentMethod: d.paymentMethod,
-        };
-      });
-
       const mergedOrders = data.map((order) => {
-        const paymentInfo = paymentMap[order.id];
-
         let subtotal = 0;
         let total = 0;
 
@@ -96,12 +80,11 @@ export default function AdminDashboard() {
           subtotal,
           total,
           savings,
-          paid: paymentInfo ? paymentInfo.paid : order.paid,
-          paymentMethod: paymentInfo && paymentInfo.paymentMethod ? paymentInfo.paymentMethod : order.paymentMethod,
+          paid: order.paid,
+          paymentMethod: order.paymentMethod,
         };
       });
 
-      console.log("Firestore paymentMap", paymentMap);
       console.log("Merged Orders", mergedOrders);
 
       setOrders(mergedOrders);
