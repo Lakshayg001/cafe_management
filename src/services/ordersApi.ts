@@ -212,9 +212,16 @@ export async function updateOrderStatus(order: Order): Promise<Order | null> {
   }
 
   const res = await fetch(
-    `${API_BASE}/customer/orders?orderNumber=${order.id}&orderStatus=${order.status.toUpperCase()}`,
+    `${API_BASE}/customer/orders?orderNumber=${order.id}`,
     {
       method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        orderNumber: order.id,
+        orderStatus: order.status.toUpperCase(),
+      }),
     }
   );
 
