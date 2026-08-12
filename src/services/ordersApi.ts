@@ -1,4 +1,4 @@
-import type { Order, OrderStatus, CategoryId } from "../types";
+import type { Order, OrderStatus, CategoryId, PaymentMethod } from "../types";
 import { SAMPLE_ORDERS } from "../data/sampleOrders";
 
 /**
@@ -95,6 +95,30 @@ function mapBackendOrderToFrontend(o: any): Order {
 
   const paid = o.paymentStatus ? o.paymentStatus.toUpperCase() === "COMPLETED" || o.paymentStatus.toUpperCase() === "PAID" : false;
 
+  let paymentMethod: PaymentMethod = "cod";
+  const rawPm = (
+    o.paymentMethod ||
+    o.paymentMode ||
+    o.paymentType ||
+    o.payment_method ||
+    o.payment_mode ||
+    o.payment ||
+    ""
+  ).toString().toLowerCase();
+
+  if (rawPm.includes("upi") || rawPm.includes("online") || rawPm.includes("razorpay")) {
+    paymentMethod = "upi";
+  } else if (rawPm.includes("card")) {
+    paymentMethod = "card";
+  } else if (rawPm.includes("cod") || rawPm.includes("cash")) {
+    paymentMethod = "cod";
+  } else {
+    // If not specified by backend:
+    // If paid, default to "upi" (online payment)
+    // If unpaid, default to "cod" (Cash / Cash on Delivery)
+    paymentMethod = paid ? "upi" : "cod";
+  }
+
   return {
     id: o.orderNumber || o.id || "",
     customerName,
@@ -106,7 +130,7 @@ function mapBackendOrderToFrontend(o: any): Order {
     subtotal: o.subtotal || 0,
     savings: o.discount || o.savings || 0,
     total: o.totalAmount || o.total || 0,
-    paymentMethod: o.paymentMethod || "upi",
+    paymentMethod,
     paid,
     status,
     createdAt: o.orderedAt || o.createdAt || new Date().toISOString(),
@@ -174,6 +198,8 @@ export async function createOrder(order: Order): Promise<Order> {
           quantity: item.qty,
         };
       }),
+      paymentMethod: (order.paymentMethod || "cod").toUpperCase(),
+      paymentMode: (order.paymentMethod || "cod").toUpperCase(),
       specialInstructions: order.note,
     }),
   });
@@ -193,6 +219,8 @@ function mapOrderToBackendPayload(order: Order) {
       quantity: item.qty,
     })),
     paymentStatus: order.paid ? "PAID" : "PENDING",
+    paymentMethod: (order.paymentMethod || "cod").toUpperCase(),
+    paymentMode: (order.paymentMethod || "cod").toUpperCase(),
     orderStatus: order.status.toUpperCase(),
     tax: 0.00,
     discount: order.savings || 0,
