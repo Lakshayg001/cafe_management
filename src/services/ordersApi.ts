@@ -287,10 +287,11 @@ export async function updateOrderStatus(order: Order): Promise<Order | null> {
         },
         specialInstructions: order.note || "",
         items: order.items.map((item) => ({
-          menuId: Number(item.id) || Number(item.id.replace(/\D/g, "")) || 0,
+          menuId: Number(item.id),
           quantity: item.qty,
         })),
         orderStatus: order.status.toUpperCase(),
+        paymentStatus: order.paid ? "SUCCESS" : "PENDING",
       }),
     }
   );
