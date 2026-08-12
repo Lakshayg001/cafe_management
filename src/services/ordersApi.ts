@@ -281,13 +281,25 @@ export async function updateOrderStatus(order: Order): Promise<Order | null> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        orderNumber: order.id,
+        customer: {
+          name: order.customerName,
+          mobile: order.phone,
+        },
+        specialInstructions: order.note || "",
+        items: order.items.map((item) => ({
+          menuId: Number(item.id) || Number(item.id.replace(/\D/g, "")) || 0,
+          quantity: item.qty,
+        })),
         orderStatus: order.status.toUpperCase(),
       }),
     }
   );
 
-  if (!res.ok) throw new Error("Failed to update order status");
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error("Update order status failed:", res.status, errorText);
+    throw new Error("Failed to update order status");
+  }
 
   const result = await res.json();
   return result?.data ? mapBackendOrderToFrontend(result.data) : null;
