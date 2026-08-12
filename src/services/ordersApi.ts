@@ -51,10 +51,32 @@ function writeStore(orders: Order[]): void {
   window.dispatchEvent(new CustomEvent("vb-orders-updated"));
 }
 
+const PM_STORAGE_KEY = "vb_order_pm_map";
+
+function getLocalPmMap(): Record<string, PaymentMethod> {
+  try {
+    const raw = localStorage.getItem(PM_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveLocalPm(orderId: string, method: PaymentMethod): void {
+  if (!orderId) return;
+  try {
+    const map = getLocalPmMap();
+    map[orderId] = method;
+    localStorage.setItem(PM_STORAGE_KEY, JSON.stringify(map));
+  } catch (e) {
+    console.error("Failed to save local PM", e);
+  }
+}
+
 function mapBackendOrderToFrontend(o: any): Order {
-  const customerName = o.customerName || "";
-  const phone = o.mobile || o.phone || "";
-  const email = o.email || "";
+  const customerName = o.customer?.fullName || o.customerName || o.fullName || "";
+  const phone = o.customer?.mobile || o.mobile || o.phone || "";
+  const email = o.customer?.email || o.email || "";
 
   const items = Array.isArray(o.items)
     ? o.items.map((item: any) => {
@@ -95,7 +117,12 @@ function mapBackendOrderToFrontend(o: any): Order {
 
   const paid = o.paymentStatus ? o.paymentStatus.toUpperCase() === "COMPLETED" || o.paymentStatus.toUpperCase() === "PAID" : false;
 
-  let paymentMethod: PaymentMethod = "cod";
+  const orderId = o.orderNumber || o.id || "";
+  const localPmMap = getLocalPmMap();
+  const localPm = localPmMap[orderId];
+
+  let paymentMethod: PaymentMethod = localPm || (paid ? "upi" : "cod");
+
   const rawPm = (
     o.paymentMethod ||
     o.paymentMode ||
@@ -103,7 +130,7 @@ function mapBackendOrderToFrontend(o: any): Order {
     o.payment_method ||
     o.payment_mode ||
     o.payment ||
-    ""
+    (o.razorpayPaymentId || o.razorpayOrderId || o.razorpay_payment_id || o.razorpay_order_id ? "upi" : "")
   ).toString().toLowerCase();
 
   if (rawPm.includes("upi") || rawPm.includes("online") || rawPm.includes("razorpay")) {
@@ -112,15 +139,10 @@ function mapBackendOrderToFrontend(o: any): Order {
     paymentMethod = "card";
   } else if (rawPm.includes("cod") || rawPm.includes("cash")) {
     paymentMethod = "cod";
-  } else {
-    // If not specified by backend:
-    // If paid, default to "upi" (online payment)
-    // If unpaid, default to "cod" (Cash / Cash on Delivery)
-    paymentMethod = paid ? "upi" : "cod";
   }
 
   return {
-    id: o.orderNumber || o.id || "",
+    id: orderId,
     customerName,
     phone,
     email,
@@ -163,6 +185,10 @@ export async function fetchOrders(): Promise<Order[]> {
 
 /** Create a new order (called from the customer checkout flow). */
 export async function createOrder(order: Order): Promise<Order> {
+  if (order.id && order.paymentMethod) {
+    saveLocalPm(order.id, order.paymentMethod);
+  }
+
   if (USE_MOCK) {
     const orders = readStore();
     orders.push(order);
@@ -200,11 +226,19 @@ export async function createOrder(order: Order): Promise<Order> {
       }),
       paymentMethod: (order.paymentMethod || "cod").toUpperCase(),
       paymentMode: (order.paymentMethod || "cod").toUpperCase(),
+      payment_method: (order.paymentMethod || "cod").toUpperCase(),
+      payment_mode: (order.paymentMethod || "cod").toUpperCase(),
       specialInstructions: order.note,
     }),
   });
   if (!res.ok) throw new Error("Failed to create order");
-  return res.json();
+  const responseData = await res.json();
+  const created = responseData && responseData.data ? responseData.data : responseData;
+  const createdId = created?.orderNumber || created?.id || order.id;
+  if (createdId && order.paymentMethod) {
+    saveLocalPm(createdId, order.paymentMethod);
+  }
+  return responseData;
 }
 
 /** Helper to map a frontend Order object to the backend PATCH payload */
