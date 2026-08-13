@@ -115,7 +115,7 @@ function mapBackendOrderToFrontend(o: any): Order {
     else if (s === "REJECTED") status = "Rejected";
   }
 
-  const paid = o.paymentStatus ? o.paymentStatus.toUpperCase() === "COMPLETED" || o.paymentStatus.toUpperCase() === "PAID" : false;
+  const paid = o.paymentStatus ? o.paymentStatus.toUpperCase() === "COMPLETED" || o.paymentStatus.toUpperCase() === "PAID" || o.paymentStatus.toUpperCase() === "SUCCESS" : false;
 
   const orderId = o.orderNumber || o.id || "";
   const localPmMap = getLocalPmMap();
