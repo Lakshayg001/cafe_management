@@ -352,6 +352,7 @@ export async function createPayment(orderNumber: string, amount: number): Promis
 }
 
 /** Verify a completed Razorpay payment transaction on the backend */
+/** Verify a completed Razorpay payment transaction on the backend */
 export async function verifyPayment(data: {
   razorpayOrderId: string;
   razorpayPaymentId: string;
@@ -364,12 +365,38 @@ export async function verifyPayment(data: {
     };
   }
 
+  console.log("Sending payment verification request:", {
+    razorpayOrderId: data.razorpayOrderId,
+    razorpayPaymentId: data.razorpayPaymentId,
+    razorpaySignaturePresent: Boolean(data.razorpaySignature),
+  });
+
   const res = await fetch(`${API_BASE}/payments/verify`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error("Payment verification failed");
-  return res.json();
-}
 
+  // Get the actual backend response even when status is 4xx/5xx
+  if (!res.ok) {
+    const errorText = await res.text();
+
+    console.error(
+      "Payment verification API failed:",
+      res.status,
+      errorText
+    );
+
+    throw new Error(
+      `Payment verification failed: ${res.status} ${errorText}`
+    );
+  }
+
+  const result = await res.json();
+
+  console.log("Payment verification API response:", result);
+
+  return result;
+}
