@@ -524,7 +524,7 @@ export default function App() {
               setPayment("upi");
             } catch (err: any) {
               console.error("Payment verification or order creation failed:", err);
-              await updateOrderPaymentFailed(orderNumber);
+              await updateOrderPaymentFailed(order, orderNumber);
               alert("Payment verification or order creation failed. Please contact support.");
             }
           },
@@ -539,7 +539,7 @@ export default function App() {
           modal: {
             ondismiss: async function () {
               localStorage.removeItem("vb_pending_checkout");
-              await updateOrderPaymentFailed(orderNumber);
+              await updateOrderPaymentFailed(order, orderNumber);
               alert("Payment session closed. You can retry paying by clicking pay again.");
             },
           },

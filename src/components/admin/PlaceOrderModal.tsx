@@ -270,7 +270,7 @@ export default function PlaceOrderModal({ open, onClose, onSuccess }: PlaceOrder
               onClose();
             } catch (err: any) {
               console.error("Payment verification or order creation failed:", err);
-              await updateOrderPaymentFailed(orderNumber);
+              await updateOrderPaymentFailed(newOrder, orderNumber);
               setError("Payment verification or order creation failed. Please contact support.");
             } finally {
               setSubmitting(false);
@@ -286,7 +286,7 @@ export default function PlaceOrderModal({ open, onClose, onSuccess }: PlaceOrder
           },
           modal: {
             ondismiss: async function () {
-              await updateOrderPaymentFailed(orderNumber);
+              await updateOrderPaymentFailed(newOrder, orderNumber);
               setSubmitting(false);
             },
           },
