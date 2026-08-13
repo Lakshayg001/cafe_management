@@ -17,7 +17,7 @@ import { COLORS } from "./data/colors";
 import { MENU, CATEGORIES, PROMO_HOT_PRICE } from "./data/menu";
 import { getMenu, getCategories } from "./api/menu";
 
-import { createOrder, createPayment, verifyPayment } from "./services/ordersApi";
+import { createOrder, createPayment, verifyPayment, updateOrderPaid } from "./services/ordersApi";
 import { loadRazorpayScript } from "./utils/razorpay";
 import type { Order } from "./types";
 
@@ -431,7 +431,7 @@ export default function App() {
       savings,
       total,
       paymentMethod: payment,
-      paid: payment !== "cod",
+      paid: false,
       status: "Pending",
       createdAt: new Date().toISOString(),
     };
@@ -455,9 +455,14 @@ export default function App() {
         });
         setPayment("upi");
       } else {
+        // Create the backend order first!
+        const createRes = await createOrder(order);
+        const backendOrder = createRes && (createRes as any).data ? (createRes as any).data : createRes;
+        const orderNumber = backendOrder.orderNumber || backendOrder.id || id;
+
         // Save pending checkout state to localStorage before opening Razorpay
         localStorage.setItem("vb_pending_checkout", JSON.stringify({
-          orderNumber: id,
+          orderNumber: orderNumber,
           cart,
           details,
           payment,
@@ -471,7 +476,7 @@ export default function App() {
           return;
         }
 
-        const initPaymentRes = await createPayment(id, total);
+        const initPaymentRes = await createPayment(orderNumber, total);
         const paymentData = initPaymentRes && initPaymentRes.data ? initPaymentRes.data : initPaymentRes;
 
         const rzpOrderId = paymentData.orderId;
@@ -481,7 +486,7 @@ export default function App() {
           amount: Math.round(total * 100),
           currency: paymentData.currency || "INR",
           name: "Velvet Brew",
-          description: `Order Payment - #${id}`,
+          description: `Order Payment - #${orderNumber}`,
           order_id: rzpOrderId,
           handler: async function (response: any) {
             try {
@@ -492,10 +497,8 @@ export default function App() {
                 razorpaySignature: response.razorpay_signature,
               });
 
-              // 2. Only now create the backend customer order
-              const createRes = await createOrder(order);
-              const backendOrder = createRes && (createRes as any).data ? (createRes as any).data : createRes;
-              const orderNumber = backendOrder.orderNumber || backendOrder.id || id;
+              // 2. Update the backend customer order's payment status to SUCCESS
+              await updateOrderPaid({ ...order, id: orderNumber, paid: true });
 
               alert(`Payment successful! Order ID: ${orderNumber}`);
 

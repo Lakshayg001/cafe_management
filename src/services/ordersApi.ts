@@ -229,6 +229,8 @@ export async function createOrder(order: Order): Promise<Order> {
       payment_method: (order.paymentMethod || "cod").toUpperCase(),
       payment_mode: (order.paymentMethod || "cod").toUpperCase(),
       specialInstructions: order.note,
+      orderStatus: "PENDING",
+      paymentStatus: "PENDING",
     }),
   });
   if (!res.ok) throw new Error("Failed to create order");
@@ -252,7 +254,7 @@ function mapOrderToBackendPayload(order: Order) {
       menuId: Number(item.id) || Number(item.id.replace(/\D/g, "")) || 0,
       quantity: item.qty,
     })),
-    paymentStatus: order.paid ? "PAID" : "PENDING",
+    paymentStatus: order.paid ? "SUCCESS" : "PENDING",
     paymentMethod: (order.paymentMethod || "cod").toUpperCase(),
     paymentMode: (order.paymentMethod || "cod").toUpperCase(),
     orderStatus: order.status.toUpperCase(),
