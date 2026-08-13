@@ -180,7 +180,9 @@ export async function fetchOrders(): Promise<Order[]> {
     rawOrders = result.orders;
   }
 
-  return rawOrders.map(mapBackendOrderToFrontend);
+  return rawOrders
+    .filter(o => o.paymentStatus?.toUpperCase() !== "FAILED")
+    .map(mapBackendOrderToFrontend);
 }
 
 /** Create a new order (called from the customer checkout flow). */
