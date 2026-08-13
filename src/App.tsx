@@ -455,10 +455,25 @@ export default function App() {
         });
         setPayment("upi");
       } else {
-        // Create the backend order first!
-        const createRes = await createOrder(order);
-        const backendOrder = createRes && (createRes as any).data ? (createRes as any).data : createRes;
-        const orderNumber = backendOrder.orderNumber || backendOrder.id || id;
+        let orderNumber = id;
+        const pendingStr = localStorage.getItem("vb_pending_checkout");
+        if (pendingStr) {
+          try {
+            const pending = JSON.parse(pendingStr);
+            if (pending.orderNumber) {
+              orderNumber = pending.orderNumber;
+            }
+          } catch (e) {
+            console.error("Failed to parse pending checkout", e);
+          }
+        }
+        
+        if (orderNumber === id) {
+          // Create the backend order first!
+          const createRes = await createOrder(order);
+          const backendOrder = createRes && (createRes as any).data ? (createRes as any).data : createRes;
+          orderNumber = backendOrder.orderNumber || backendOrder.id || id;
+        }
 
         // Save pending checkout state to localStorage before opening Razorpay
         localStorage.setItem("vb_pending_checkout", JSON.stringify({

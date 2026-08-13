@@ -4,7 +4,7 @@ import { COLORS } from "../../data/colors";
 import { rupee } from "../../utils/currency";
 import { CATEGORIES, MENU, PROMO_HOT_PRICE } from "../../data/menu";
 import { getMenu, getCategories } from "../../api/menu";
-import { createOrder, createPayment, verifyPayment } from "../../services/ordersApi";
+import { createOrder, createPayment, verifyPayment, updateOrderPaid } from "../../services/ordersApi";
 import type { Category, MenuItem, CategoryId, Details, PaymentMethod, Order, OrderItemRecord } from "../../types";
 import { loadRazorpayScript } from "../../utils/razorpay";
 
@@ -225,6 +225,10 @@ export default function PlaceOrderModal({ open, onClose, onSuccess }: PlaceOrder
         setSubmitting(false);
         onClose();
       } else {
+        const createRes = await createOrder(newOrder);
+        const backendOrder = createRes && (createRes as any).data ? (createRes as any).data : createRes;
+        const orderNumber = backendOrder.orderNumber || backendOrder.id || orderId;
+
         const scriptLoaded = await loadRazorpayScript();
         if (!scriptLoaded) {
           setError("Failed to load Razorpay payment portal. Please check your internet connection.");
@@ -232,7 +236,7 @@ export default function PlaceOrderModal({ open, onClose, onSuccess }: PlaceOrder
           return;
         }
 
-        const initPaymentRes = await createPayment(orderId, total);
+        const initPaymentRes = await createPayment(orderNumber, total);
         const paymentData = initPaymentRes && initPaymentRes.data ? initPaymentRes.data : initPaymentRes;
 
         const rzpOrderId = paymentData.orderId;
@@ -242,7 +246,7 @@ export default function PlaceOrderModal({ open, onClose, onSuccess }: PlaceOrder
           amount: Math.round(total * 100),
           currency: paymentData.currency || "INR",
           name: "Velvet Brew",
-          description: `POS Order Payment - #${orderId}`,
+          description: `POS Order Payment - #${orderNumber}`,
           order_id: rzpOrderId,
           handler: async function (response: any) {
             try {
@@ -254,10 +258,8 @@ export default function PlaceOrderModal({ open, onClose, onSuccess }: PlaceOrder
                 razorpaySignature: response.razorpay_signature,
               });
 
-              // 2. Only now create the backend customer order
-              const createRes = await createOrder(newOrder);
-              const backendOrder = createRes && (createRes as any).data ? (createRes as any).data : createRes;
-              const orderNumber = backendOrder.orderNumber || backendOrder.id || orderId;
+              // 2. Update the backend customer order's payment status to SUCCESS
+              await updateOrderPaid({ ...newOrder, id: orderNumber, paid: true });
 
               onSuccess();
               
