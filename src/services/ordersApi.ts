@@ -329,6 +329,21 @@ export async function updateOrderPaid(order: Order): Promise<Order | null> {
   return result && result.data ? mapBackendOrderToFrontend(result.data) : null;
 }
 
+/** Mark an order's payment as failed (when Razorpay is closed or fails) */
+export async function updateOrderPaymentFailed(orderId: string): Promise<void> {
+  if (USE_MOCK) return;
+  try {
+    await fetch(`${API_BASE}/customer/orders?orderNumber=${orderId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paymentStatus: "FAILED" }),
+    });
+  } catch (err) {
+    console.error("Failed to mark order payment as failed", err);
+  }
+}
+
+
 /** Create a payment order on Razorpay via backend */
 export async function createPayment(orderNumber: string, amount: number): Promise<any> {
   if (USE_MOCK) {

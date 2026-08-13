@@ -17,7 +17,7 @@ import { COLORS } from "./data/colors";
 import { MENU, CATEGORIES, PROMO_HOT_PRICE } from "./data/menu";
 import { getMenu, getCategories } from "./api/menu";
 
-import { createOrder, createPayment, verifyPayment, updateOrderPaid } from "./services/ordersApi";
+import { createOrder, createPayment, verifyPayment, updateOrderPaid, updateOrderPaymentFailed } from "./services/ordersApi";
 import { loadRazorpayScript } from "./utils/razorpay";
 import type { Order } from "./types";
 
@@ -524,6 +524,7 @@ export default function App() {
               setPayment("upi");
             } catch (err: any) {
               console.error("Payment verification or order creation failed:", err);
+              await updateOrderPaymentFailed(orderNumber);
               alert("Payment verification or order creation failed. Please contact support.");
             }
           },
@@ -536,8 +537,9 @@ export default function App() {
             color: "#C79A56",
           },
           modal: {
-            ondismiss: function () {
+            ondismiss: async function () {
               localStorage.removeItem("vb_pending_checkout");
+              await updateOrderPaymentFailed(orderNumber);
               alert("Payment session closed. You can retry paying by clicking pay again.");
             },
           },

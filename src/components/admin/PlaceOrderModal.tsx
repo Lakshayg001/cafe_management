@@ -4,7 +4,7 @@ import { COLORS } from "../../data/colors";
 import { rupee } from "../../utils/currency";
 import { CATEGORIES, MENU, PROMO_HOT_PRICE } from "../../data/menu";
 import { getMenu, getCategories } from "../../api/menu";
-import { createOrder, createPayment, verifyPayment, updateOrderPaid } from "../../services/ordersApi";
+import { createOrder, createPayment, verifyPayment, updateOrderPaid, updateOrderPaymentFailed } from "../../services/ordersApi";
 import type { Category, MenuItem, CategoryId, Details, PaymentMethod, Order, OrderItemRecord } from "../../types";
 import { loadRazorpayScript } from "../../utils/razorpay";
 
@@ -270,6 +270,7 @@ export default function PlaceOrderModal({ open, onClose, onSuccess }: PlaceOrder
               onClose();
             } catch (err: any) {
               console.error("Payment verification or order creation failed:", err);
+              await updateOrderPaymentFailed(orderNumber);
               setError("Payment verification or order creation failed. Please contact support.");
             } finally {
               setSubmitting(false);
@@ -284,7 +285,8 @@ export default function PlaceOrderModal({ open, onClose, onSuccess }: PlaceOrder
             color: "#C79A56",
           },
           modal: {
-            ondismiss: function () {
+            ondismiss: async function () {
+              await updateOrderPaymentFailed(orderNumber);
               setSubmitting(false);
             },
           },
