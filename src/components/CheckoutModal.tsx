@@ -1,4 +1,4 @@
-import { X, User, Phone, MessageSquare, CreditCard, Wallet, Smartphone, Mail } from "lucide-react";
+import { X, User, Phone, MessageSquare, CreditCard, Wallet, Smartphone } from "lucide-react";
 
 import { COLORS } from "../data/colors";
 import Field from "./Field";
@@ -111,14 +111,7 @@ export default function CheckoutModal({
                         }
                     />
 
-                    <Field
-                        icon={Mail}
-                        placeholder="Email Address (optional)"
-                        value={details.email}
-                        onChange={(value) =>
-                            onDetailsChange("email", value)
-                        }
-                    />
+
 
                     <Field
                         icon={MessageSquare}
