@@ -8,7 +8,7 @@ import "./index.css";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import OfferStrip from "./components/OfferStrip";
-import MenuGrid from "./components/MenuGrid";
+import MenuSection from "./components/MenuSection";
 import CartDrawer from "./components/CartDrawer";
 import CheckoutModal from "./components/CheckoutModal";
 import LegalModal from "./components/LegalModal";
@@ -32,7 +32,7 @@ import type {
 
 export default function App() {
   const [activeCategory, setActiveCategory] =
-    useState<CategoryId>("hot");
+    useState<CategoryId | "all">("all");
 
   const [cart, setCart] = useState<Record<string, CartItem>>(() => {
     try {
@@ -203,6 +203,13 @@ export default function App() {
           });
         });
 
+        uniqueCategories.forEach(cat => {
+            const firstItemWithImage = newMenu[cat.id].find(i => i.imageUrl);
+            if (firstItemWithImage) {
+                cat.image = firstItemWithImage.imageUrl;
+            }
+        });
+
         setCategories(uniqueCategories.length > 0 ? uniqueCategories : CATEGORIES);
         setMenu(newMenu);
         setMenuError(null);
@@ -271,6 +278,13 @@ export default function App() {
           featured: item.featured,
           offerPrice: item.offerPrice,
         });
+      });
+
+      uniqueCategories.forEach(cat => {
+          const firstItemWithImage = newMenu[cat.id].find(i => i.imageUrl);
+          if (firstItemWithImage) {
+              cat.image = firstItemWithImage.imageUrl;
+          }
       });
 
       setCategories(uniqueCategories.length > 0 ? uniqueCategories : CATEGORIES);
@@ -572,7 +586,7 @@ export default function App() {
         promoPrice={PROMO_HOT_PRICE}
       />
 
-      <MenuGrid
+      <MenuSection
         activeCategory={activeCategory}
         setActiveCategory={setActiveCategory}
         cart={cart}

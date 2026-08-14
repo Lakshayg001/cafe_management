@@ -54,6 +54,7 @@ export interface Category {
     id: CategoryId;
     label: string;
     icon: LucideIcon;
+    image?: string;
 }
 
 export interface CartItem {
