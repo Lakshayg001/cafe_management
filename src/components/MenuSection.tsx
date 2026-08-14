@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, ElementType } from 'react';
 import { Leaf, Search, Sparkles } from 'lucide-react';
 import { COLORS } from '../data/colors';
 import MenuCard from './MenuCard';
@@ -16,6 +16,22 @@ interface MenuSectionProps {
   loading: boolean;
   error: string | null;
   onRetry: () => void;
+}
+
+function CategoryIcon({ src, alt, icon: Icon, size }: { src?: string, alt: string, icon: ElementType, size: number }) {
+    const [error, setError] = useState(false);
+    if (!src || error) {
+        return <Icon size={size} />;
+    }
+    return (
+        <img 
+            src={src} 
+            alt={alt} 
+            className="object-cover rounded-full" 
+            style={{ width: size, height: size }}
+            onError={() => setError(true)} 
+        />
+    );
 }
 
 export default function MenuSection({
@@ -157,11 +173,7 @@ export default function MenuSection({
                             borderColor: isActive ? COLORS.espresso : '#E5E5E5',
                         }}
                     >
-                        {c.image ? (
-                            <img src={c.image} alt={c.label} className="h-5 w-5 object-cover rounded-full" />
-                        ) : (
-                            <c.icon size={16} />
-                        )}
+                        <CategoryIcon src={c.image} alt={c.label} icon={c.icon} size={20} />
                         {c.label}
                         <span className="rounded-full px-1.5 py-0.5 text-[10px] font-bold" style={{ backgroundColor: isActive ? 'rgba(255,255,255,0.15)' : '#F5F5F5', color: isActive ? COLORS.goldLt : COLORS.clay }}>
                             {count}
@@ -198,11 +210,7 @@ export default function MenuSection({
                 <div className="mb-5 flex items-end justify-between gap-4">
                     <div>
                     <h3 className="vb-display flex items-center gap-2.5 text-xl" style={{ color: COLORS.umber }}>
-                        {cat.image ? (
-                        <img src={cat.image} alt={cat.label} className="h-8 w-8 object-cover rounded-full" />
-                        ) : (
-                        <cat.icon size={24} />
-                        )}
+                        <CategoryIcon src={cat.image} alt={cat.label} icon={cat.icon} size={32} />
                         {cat.label}
                     </h3>
                     </div>

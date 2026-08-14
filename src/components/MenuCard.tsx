@@ -36,12 +36,25 @@ export default function MenuCard({
 
     return (
         <div
-            className="rounded-xl p-5 flex items-center justify-between gap-3 vb-ring"
+            className="rounded-xl flex flex-col justify-between gap-3 vb-ring relative overflow-hidden"
             style={{
                 background: COLORS.umber,
             }}
         >
-            <div className="flex-1 min-w-0">
+            {item.imageUrl && (
+                <div className="w-full h-40 bg-black/20 shrink-0">
+                    <img 
+                        src={item.imageUrl} 
+                        alt={item.name} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                    />
+                </div>
+            )}
+            
+            <div className="p-5 pt-3 flex-1 flex flex-col min-w-0">
                 <div className="flex items-start gap-2">
                     {item.veg !== undefined && (
                         <div
@@ -72,41 +85,6 @@ export default function MenuCard({
                         {item.name}
                     </p>
                 </div>
-
-                <div className="flex items-center gap-2 mt-1">
-                    {isPromo && (
-                        <span
-                            className="text-xs line-through"
-                            style={{
-                                color: COLORS.clay,
-                            }}
-                        >
-                            {rupee(item.price)}
-                        </span>
-                    )}
-
-                    <span
-                        className="text-sm"
-                        style={{
-                            color: COLORS.gold,
-                        }}
-                    >
-                        {rupee(displayPrice)}
-                    </span>
-
-                    {isPromo && (
-                        <span
-                            className="text-[10px] uppercase tracking-wide rounded-full px-2 py-0.5"
-                            style={{
-                                background: COLORS.gold,
-                                color: COLORS.espresso,
-                            }}
-                        >
-                            Offer
-                        </span>
-                    )}
-                </div>
-
                 {item.description && (
                     <p
                         className="text-xs mt-2 line-clamp-2"
@@ -119,53 +97,76 @@ export default function MenuCard({
                     </p>
                 )}
             </div>
-
-            {qtyInCart === 0 ? (
-                <button
-                    onClick={() => onAdd(category, item)}
-                    className="shrink-0 flex items-center justify-center w-9 h-9 rounded-full"
-                    style={{
-                        border: `1px solid ${COLORS.gold}`,
-                        color: COLORS.gold,
-                    }}
-                >
-                    <Plus size={16} />
-                </button>
-            ) : (
-                <div
-                    className="shrink-0 flex items-center gap-2 rounded-full px-2 py-1"
-                    style={{
-                        background: COLORS.umberLt,
-                    }}
-                >
-                    <button
-                        onClick={() => onDecrease(item.id)}
-                        style={{
-                            color: COLORS.gold,
-                        }}
-                    >
-                        <Minus size={14} />
-                    </button>
+            <div className="px-5 pb-5 flex items-end justify-between">
+                <div className="flex items-center gap-2">
+                    {isPromo && (
+                        <span
+                            className="text-xs line-through"
+                            style={{
+                                color: COLORS.clay,
+                            }}
+                        >
+                            {rupee(item.price)}
+                        </span>
+                    )}
 
                     <span
-                        className="text-sm w-4 text-center"
-                        style={{
-                            color: COLORS.cream,
-                        }}
-                    >
-                        {qtyInCart}
-                    </span>
-
-                    <button
-                        onClick={() => onAdd(category, item)}
+                        className="text-lg font-bold"
                         style={{
                             color: COLORS.gold,
                         }}
                     >
-                        <Plus size={14} />
-                    </button>
+                        {rupee(displayPrice)}
+                    </span>
                 </div>
-            )}
+
+                {qtyInCart === 0 ? (
+                    <button
+                        onClick={() => onAdd(category, item)}
+                        className="shrink-0 flex items-center justify-center w-9 h-9 rounded-full transition-transform hover:scale-110"
+                        style={{
+                            border: `1px solid ${COLORS.gold}`,
+                            color: COLORS.gold,
+                        }}
+                    >
+                        <Plus size={16} />
+                    </button>
+                ) : (
+                    <div
+                        className="shrink-0 flex items-center gap-2 rounded-full px-2 py-1"
+                        style={{
+                            background: COLORS.umberLt,
+                        }}
+                    >
+                        <button
+                            onClick={() => onDecrease(item.id)}
+                            style={{
+                                color: COLORS.gold,
+                            }}
+                        >
+                            <Minus size={14} />
+                        </button>
+
+                        <span
+                            className="text-sm w-4 text-center"
+                            style={{
+                                color: COLORS.cream,
+                            }}
+                        >
+                            {qtyInCart}
+                        </span>
+
+                        <button
+                            onClick={() => onAdd(category, item)}
+                            style={{
+                                color: COLORS.gold,
+                            }}
+                        >
+                            <Plus size={14} />
+                        </button>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
