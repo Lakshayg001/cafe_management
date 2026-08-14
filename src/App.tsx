@@ -190,12 +190,17 @@ export default function App() {
         apiItems.forEach((item) => {
           const category = mapCategoryKey(item.categoryId, item.categoryName);
 
+          let parsedImageUrl = item.imageUrl;
+          if (parsedImageUrl && parsedImageUrl.startsWith('s3://velvetbrew/')) {
+              parsedImageUrl = parsedImageUrl.replace('s3://velvetbrew/', 'https://velvetbrew.s3.ap-south-1.amazonaws.com/');
+          }
+
           newMenu[category].push({
             id: String(item.id),
             name: item.name,
             price: item.price,
             description: item.description,
-            imageUrl: item.imageUrl,
+            imageUrl: parsedImageUrl,
             veg: item.veg,
             available: item.available,
             featured: item.featured,
@@ -267,12 +272,17 @@ export default function App() {
       apiItems.forEach((item) => {
         const category = mapCategoryKey(item.categoryId, item.categoryName);
 
+        let parsedImageUrl = item.imageUrl;
+        if (parsedImageUrl && parsedImageUrl.startsWith('s3://velvetbrew/')) {
+            parsedImageUrl = parsedImageUrl.replace('s3://velvetbrew/', 'https://velvetbrew.s3.ap-south-1.amazonaws.com/');
+        }
+
         newMenu[category].push({
           id: String(item.id),
           name: item.name,
           price: item.price,
           description: item.description,
-          imageUrl: item.imageUrl,
+          imageUrl: parsedImageUrl,
           veg: item.veg,
           available: item.available,
           featured: item.featured,
