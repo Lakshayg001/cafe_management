@@ -99,22 +99,6 @@ export default function MenuSection({
         {/* ---------------- controls ---------------- */}
         <div className="sticky top-[70px] z-40 -mx-4 mt-8 px-4 py-3 backdrop-blur-lg sm:-mx-6 sm:px-6 shadow-sm" style={{ backgroundColor: 'rgba(253,251,247,0.9)', borderBottom: `1px solid ${COLORS.line}` }}>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center max-w-5xl mx-auto">
-            {/* channel */}
-            <div className="flex shrink-0 items-center gap-1 rounded-2xl p-1" style={{ backgroundColor: '#fff', border: '1px solid #E5E5E5' }}>
-              {(['dine-in', 'takeaway', 'delivery'] as const).map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setChannel(c)}
-                  className="relative rounded-xl px-3.5 py-2 text-[13px] font-semibold transition-colors capitalize cursor-pointer"
-                  style={{
-                    backgroundColor: channel === c ? COLORS.gold : 'transparent',
-                    color: channel === c ? COLORS.espresso : COLORS.clay,
-                  }}
-                >
-                  {c.replace('-', ' ')}
-                </button>
-              ))}
-            </div>
 
             {/* search */}
             <div className="relative min-w-0 flex-1">
