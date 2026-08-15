@@ -127,19 +127,6 @@ export default function MenuSection({
                 style={{ backgroundColor: '#fff', border: '1px solid #E5E5E5', color: COLORS.espresso, outlineColor: COLORS.gold }}
               />
             </div>
-
-            <button
-              onClick={() => setVegOnly((v) => !v)}
-              className="flex h-11 shrink-0 items-center gap-2 rounded-2xl border px-4 text-[13px] font-semibold transition-colors cursor-pointer"
-              style={{
-                borderColor: vegOnly ? COLORS.success : '#E5E5E5',
-                backgroundColor: vegOnly ? `${COLORS.success}15` : '#fff',
-                color: vegOnly ? COLORS.success : COLORS.clay,
-              }}
-            >
-              <Leaf className="h-4 w-4" />
-              Veg only
-            </button>
           </div>
 
           {/* categories */}
