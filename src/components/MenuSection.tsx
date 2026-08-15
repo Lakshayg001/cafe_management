@@ -114,7 +114,7 @@ export default function MenuSection({
           </div>
 
           {/* categories */}
-          <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto pb-2 max-w-5xl mx-auto">
+          <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto pb-2 max-w-5xl mx-auto md:justify-center">
             <button
                 onClick={() => setActiveCategory('all')}
                 className="flex shrink-0 items-center gap-2 rounded-2xl border px-4 py-2.5 text-[13px] font-semibold transition-all cursor-pointer"
