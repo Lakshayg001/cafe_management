@@ -124,9 +124,13 @@ export default function AdminDashboard() {
     await updateOrderPaid(updated);
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate("/admin/login", { replace: true });
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/admin/login", { replace: true });
+    } catch (err) {
+      console.error("Logout error", err);
+    }
   };
 
   const visibleOrders = filter === "All" ? orders : orders.filter((o) => o.status === filter);

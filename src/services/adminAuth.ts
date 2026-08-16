@@ -1,25 +1,22 @@
-/**
- * Minimal password gate for the admin page. This is intentionally
- * simple and client-side only — swap this out for real auth
- * (JWT/session cookie from the backend team) before going live.
- */
+import { useState, useEffect } from "react";
+import { onAuthStateChanged, signOut, type User } from "firebase/auth";
+import { auth } from "../firebase/firebase";
 
-// TODO(backend): replace with a real login endpoint + token.
-const ADMIN_PASSWORD = "velvetbrew2026";
-const AUTH_KEY = "vb_admin_auth";
+export function useAdminAuth() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-export function login(password: string): boolean {
-  if (password === ADMIN_PASSWORD) {
-    sessionStorage.setItem(AUTH_KEY, "true");
-    return true;
-  }
-  return false;
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  return { user, loading };
 }
 
-export function isAuthed(): boolean {
-  return sessionStorage.getItem(AUTH_KEY) === "true";
-}
-
-export function logout(): void {
-  sessionStorage.removeItem(AUTH_KEY);
+export async function logout(): Promise<void> {
+  await signOut(auth);
 }

@@ -1,25 +1,56 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
-import { Lock } from "lucide-react";
+import { useNavigate, Navigate } from "react-router-dom";
+import { Lock, Mail } from "lucide-react";
 import { COLORS } from "../data/colors";
-import { login, isAuthed } from "../services/adminAuth";
+import { useAdminAuth } from "../services/adminAuth";
 import logo from "../assets/velvet-brew-logo.jpg";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../firebase/firebase";
 
 export default function AdminLogin() {
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  
+  const { user, loading: authLoading } = useAdminAuth();
 
-  if (isAuthed()) {
-    navigate("/admin", { replace: true });
+  if (authLoading) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center px-4" style={{ background: COLORS.espresso }}>
+         <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: COLORS.gold, borderTopColor: 'transparent' }}></div>
+      </div>
+    );
   }
 
-  const handleSubmit = (e: FormEvent) => {
+  if (user) {
+    return <Navigate to="/admin" replace />;
+  }
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (login(password)) {
+    if (!email || !password) {
+      setError("Please enter both email and password.");
+      return;
+    }
+    
+    setError("");
+    setLoading(true);
+    
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
       navigate("/admin", { replace: true });
-    } else {
-      setError("Incorrect password. Try again.");
+    } catch (err: any) {
+      console.error("Login error", err);
+      // Simplify Firebase error messages for the UI
+      if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
+        setError("Invalid email or password.");
+      } else {
+        setError("Failed to log in. Please try again.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -41,6 +72,22 @@ export default function AdminLogin() {
           className="flex items-center gap-2 rounded-lg px-3 py-2.5 mb-3"
           style={{ background: COLORS.umberLt, border: `1px solid ${COLORS.line}` }}
         >
+          <Mail size={15} style={{ color: COLORS.gold }} />
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email Address"
+            className="bg-transparent outline-none text-sm w-full"
+            style={{ color: COLORS.cream }}
+            autoFocus
+          />
+        </div>
+
+        <div
+          className="flex items-center gap-2 rounded-lg px-3 py-2.5 mb-3"
+          style={{ background: COLORS.umberLt, border: `1px solid ${COLORS.line}` }}
+        >
           <Lock size={15} style={{ color: COLORS.gold }} />
           <input
             type="password"
@@ -49,7 +96,6 @@ export default function AdminLogin() {
             placeholder="Password"
             className="bg-transparent outline-none text-sm w-full"
             style={{ color: COLORS.cream }}
-            autoFocus
           />
         </div>
 
@@ -57,10 +103,15 @@ export default function AdminLogin() {
 
         <button
           type="submit"
-          className="w-full rounded-full py-3 text-sm tracking-wide"
+          disabled={loading}
+          className="w-full flex items-center justify-center rounded-full py-3 text-sm tracking-wide transition-opacity disabled:opacity-50"
           style={{ background: COLORS.gold, color: COLORS.espresso }}
         >
-          Log in
+          {loading ? (
+             <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: COLORS.espresso, borderTopColor: 'transparent' }}></div>
+          ) : (
+            "Log in"
+          )}
         </button>
       </form>
     </div>
