@@ -588,6 +588,7 @@ export default function App() {
       <Header
         cartCount={cartCount}
         onOpenCart={() => setCartOpen(true)}
+        cartOpen={cartOpen}
       />
 
       <Hero />
