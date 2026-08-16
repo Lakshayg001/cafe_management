@@ -82,7 +82,7 @@ export default function MenuSection({
   }, [filtered, categories]);
 
   return (
-    <section id="menu" className="py-14" style={{ backgroundColor: '#FDFBF7' }}>
+    <section id="menu" className="py-14" style={{ backgroundColor: '#F5EBE1' }}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="text-center mb-10">
             <p className="uppercase text-xs tracking-[0.35em]" style={{ color: COLORS.gold }}>
