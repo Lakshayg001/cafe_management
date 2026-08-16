@@ -103,10 +103,10 @@ export default function Header({
       <div className="border-t" style={{ borderColor: 'rgba(255,255,255,0.06)', backgroundColor: 'rgba(23,15,10,0.6)', backdropFilter: 'blur(12px)' }}>
         <div className="mx-auto flex max-w-7xl items-center gap-4 overflow-x-auto px-4 py-1.5 text-[11px] font-medium sm:px-6" style={{ color: 'rgba(253, 251, 247, 0.6)' }}>
           <span className="flex shrink-0 items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: '#10b981' }} /> Open now · 8:00 AM – 11:00 PM
+            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: '#10b981' }} /> Open now · 05:00 PM – 12:00 AM
           </span>
           <span className="shrink-0 items-center gap-1.5 flex">
-            <MapPin className="h-3 w-3" /> 100 Feet Road, Indiranagar, Bengaluru
+            <MapPin className="h-3 w-3" /> Opp. City Hospital, Avas Vikas Road, Shastri Nagar, Civil Lines, Budaun
           </span>
         </div>
       </div>

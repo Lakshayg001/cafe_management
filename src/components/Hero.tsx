@@ -24,7 +24,7 @@ export default function Hero() {
             style={{ borderColor: 'rgba(204, 165, 86, 0.3)', backgroundColor: 'rgba(204, 165, 86, 0.1)', color: COLORS.gold }}
           >
             <Sparkles className="h-3.5 w-3.5" />
-            Now open in Indiranagar
+            Now open in Budaun
           </span>
 
           <h1 className="mt-5 font-bold leading-[0.95] tracking-tight text-[clamp(2.75rem,8vw,4.75rem)]" style={{ color: COLORS.cream }}>
@@ -37,6 +37,10 @@ export default function Hero() {
           <p className="mt-5 max-w-md text-[15px] leading-relaxed" style={{ color: 'rgba(253, 251, 247, 0.7)' }}>
             Small-batch roasts, honest ingredients and a counter that remembers your
             order. Pick your cup, pick your channel — we will have it ready.
+          </p>
+
+          <p className="relative text-[12px] text-white/40 mt-10">
+            © 2026 Velvet Brew Café · Budaun
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
