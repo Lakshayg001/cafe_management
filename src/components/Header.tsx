@@ -72,7 +72,7 @@ export default function Header({
         <div className="ml-auto flex items-center gap-2">
           
           <button
-            onClick={() => navigate('/admin/login')}
+            onClick={() => {}}
             className="flex h-10 items-center gap-2 rounded-xl border px-3.5 text-[13px] font-semibold transition-colors"
             style={{ borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.05)', color: 'rgba(253, 251, 247, 0.9)' }}
           >

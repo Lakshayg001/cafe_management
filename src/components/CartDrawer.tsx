@@ -45,7 +45,7 @@ export default function CartDrawer({
     const cartLines = Object.values(cart);
 
     return (
-        <div className="fixed inset-0 z-40 flex justify-end">
+        <div className="fixed inset-0 z-[60] flex justify-end">
             <div
                 className="absolute inset-0"
                 style={{
