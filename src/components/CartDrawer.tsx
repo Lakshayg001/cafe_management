@@ -23,7 +23,6 @@ interface CartDrawerProps {
 const CHANNELS = [
     { id: 'dine_in', label: 'Dine-in' },
     { id: 'takeaway', label: 'Takeaway' },
-    { id: 'delivery', label: 'Online Delivery' },
 ];
 
 export default function CartDrawer({
@@ -86,7 +85,10 @@ export default function CartDrawer({
                                 </p>
                             </div>
                             <button
-                                onClick={onClose}
+                                onClick={() => {
+                                    onClose();
+                                    document.getElementById('menu')?.scrollIntoView({ behavior: 'smooth' });
+                                }}
                                 className="mt-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold text-[#2C1810] border border-[#e8dfd5] transition-colors hover:bg-[#f3eee7]"
                             >
                                 Browse the menu
@@ -99,7 +101,7 @@ export default function CartDrawer({
                                 <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-[#8B7355]">
                                     How would you like it?
                                 </p>
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 gap-2">
                                     {CHANNELS.map((c) => (
                                         <button
                                             key={c.id}
@@ -188,8 +190,8 @@ export default function CartDrawer({
                                         <input
                                             value={promoCode}
                                             onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                                            placeholder="VELVET10"
-                                            className="h-10 flex-1 rounded-xl border border-[#e8dfd5] px-3 text-[13px] outline-none focus:border-[#d4c5b0] uppercase tracking-wider placeholder-[#d4c5b0] text-[#2C1810]"
+                                            placeholder=""
+                                            className="h-10 flex-1 rounded-xl border border-[#e8dfd5] px-3 text-[13px] outline-none focus:border-[#d4c5b0] uppercase tracking-wider text-[#2C1810]"
                                         />
                                         <button 
                                             onClick={handleApplyPromo}
