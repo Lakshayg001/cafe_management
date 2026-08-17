@@ -3,6 +3,7 @@ import { ShoppingBag, User2, MapPin } from 'lucide-react';
 import { COLORS } from '../data/colors';
 import logo from '../assets/velvet-brew-logo.jpg';
 import { useNavigate } from 'react-router-dom';
+import { useCustomerAuth, signInWithGoogle, logoutCustomer } from '../services/customerAuth';
 
 const LINKS = [
   { id: 'menu', label: 'Menu' },
@@ -20,7 +21,9 @@ export default function Header({
   cartOpen?: boolean;
 }) {
   const [scrolled, setScrolled] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const navigate = useNavigate();
+  const { user, loading } = useCustomerAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 16);
@@ -71,16 +74,63 @@ export default function Header({
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2 relative">
           
-          <button
-            onClick={() => {}}
-            className="flex h-10 items-center gap-2 rounded-xl border px-3.5 text-[13px] font-semibold transition-colors"
-            style={{ borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.05)', color: 'rgba(253, 251, 247, 0.9)' }}
-          >
-            <User2 className="h-4 w-4" />
-            Sign in
-          </button>
+          {loading ? (
+             <div className="h-10 w-24 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}></div>
+          ) : user ? (
+            <div className="relative">
+              <button
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="flex h-10 items-center gap-2 rounded-xl border px-2.5 transition-colors"
+                style={{ borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.05)', color: 'rgba(253, 251, 247, 0.9)' }}
+              >
+                {user.photoURL ? (
+                  <img src={user.photoURL} alt={user.displayName || 'User'} className="h-6 w-6 rounded-full" />
+                ) : (
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10">
+                    <User2 className="h-3 w-3" />
+                  </div>
+                )}
+                <span className="text-[13px] font-semibold hidden sm:inline max-w-[100px] truncate">
+                  {user.displayName?.split(' ')[0] || 'User'}
+                </span>
+              </button>
+
+              {dropdownOpen && (
+                <div 
+                  className="absolute right-0 top-full mt-2 w-48 rounded-xl border p-2 shadow-xl"
+                  style={{ backgroundColor: COLORS.espresso, borderColor: 'rgba(255,255,255,0.12)' }}
+                >
+                  <div className="px-3 py-2 border-b mb-1" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                    <p className="text-[13px] font-semibold truncate" style={{ color: COLORS.cream }}>{user.displayName}</p>
+                    <p className="text-[11px] truncate" style={{ color: COLORS.muted }}>{user.email}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      logoutCustomer();
+                    }}
+                    className="w-full text-left rounded-lg px-3 py-2 text-[13px] font-medium transition-colors"
+                    style={{ color: COLORS.danger }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    Sign out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={signInWithGoogle}
+              className="flex h-10 items-center gap-2 rounded-xl border px-3.5 text-[13px] font-semibold transition-colors"
+              style={{ borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.05)', color: 'rgba(253, 251, 247, 0.9)' }}
+            >
+              <User2 className="h-4 w-4" />
+              Sign in
+            </button>
+          )}
 
           <button
             onClick={onOpenCart}
