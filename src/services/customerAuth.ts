@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, type User } from "firebase/auth";
+import { onAuthStateChanged, signInWithRedirect, GoogleAuthProvider, signOut, type User } from "firebase/auth";
 import { auth } from "../firebase/firebase";
 
 const provider = new GoogleAuthProvider();
@@ -21,10 +21,9 @@ export function useCustomerAuth() {
   return { user, loading };
 }
 
-export async function signInWithGoogle(): Promise<User> {
+export async function signInWithGoogle(): Promise<void> {
   try {
-    const result = await signInWithPopup(auth, provider);
-    return result.user;
+    await signInWithRedirect(auth, provider);
   } catch (error) {
     console.error("Error signing in with Google", error);
     throw error;
