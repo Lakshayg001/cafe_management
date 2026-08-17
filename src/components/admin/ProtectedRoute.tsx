@@ -3,7 +3,7 @@ import { Navigate } from "react-router-dom";
 import { useAdminAuth } from "../../services/adminAuth";
 
 export default function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { user, loading } = useAdminAuth();
+  const { user, isAdmin, loading } = useAdminAuth();
 
   if (loading) {
     // Basic loading state while checking Firebase Auth
@@ -14,7 +14,7 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!user) {
+  if (!user || !isAdmin) {
     return <Navigate to="/admin/login" replace />;
   }
 

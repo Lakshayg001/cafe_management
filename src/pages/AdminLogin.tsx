@@ -4,7 +4,7 @@ import { ArrowLeft, Lock, ShieldCheck, Mail } from 'lucide-react';
 import { COLORS } from '../data/colors';
 import { useAdminAuth } from '../services/adminAuth';
 import logo from '../assets/velvet-brew-logo.jpg';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth } from '../firebase/firebase';
 
 export default function AdminLogin() {
@@ -14,7 +14,7 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   
-  const { user, loading: authLoading } = useAdminAuth();
+  const { user, isAdmin, loading: authLoading } = useAdminAuth();
 
   if (authLoading) {
     return (
@@ -24,7 +24,8 @@ export default function AdminLogin() {
     );
   }
 
-  if (user) {
+  // Only auto-redirect if they are fully authenticated AND are an admin.
+  if (user && isAdmin) {
     return <Navigate to="/admin" replace />;
   }
 
@@ -39,7 +40,17 @@ export default function AdminLogin() {
     setLoading(true);
     
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // Force token refresh to get latest custom claims
+      const idTokenResult = await userCredential.user.getIdTokenResult(true);
+      
+      if (idTokenResult.claims.role !== 'admin') {
+        // Not an admin, kick them out
+        await signOut(auth);
+        setError("Access denied: You do not have admin privileges.");
+        return; // Don't navigate
+      }
+
       navigate("/admin", { replace: true });
     } catch (err: any) {
       console.error("Login error", err);
