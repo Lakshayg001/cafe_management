@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
-import { Search } from "lucide-react";
+import { Search, Plus, Minus, Trash2 } from "lucide-react";
 import { rupee } from "../../utils/currency";
+import { createOrder } from "../../services/ordersApi";
+import type { Order } from "../../types";
 
 interface PosBillingViewProps {
   items: any[];
@@ -8,8 +10,13 @@ interface PosBillingViewProps {
 
 export default function PosBillingView({ items }: PosBillingViewProps) {
   const [query, setQuery] = useState("");
-  const [channel, setChannel] = useState<"dine-in" | "takeaway">("dine-in");
+  const [channel, setChannel] = useState<"Dine-in" | "Takeaway">("Dine-in");
   const [cat, setCat] = useState<string>("all");
+
+  const [cart, setCart] = useState<Record<string, { item: any; qty: number }>>({});
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const categories = [
     { id: "1", name: "Hot Coffee", emoji: "☕" },
@@ -27,98 +34,274 @@ export default function PosBillingView({ items }: PosBillingViewProps) {
     });
   }, [items, cat, query]);
 
+  const addToCart = (item: any) => {
+    setCart((prev) => {
+      const existing = prev[item.id];
+      if (existing) {
+        return { ...prev, [item.id]: { ...existing, qty: existing.qty + 1 } };
+      }
+      return { ...prev, [item.id]: { item, qty: 1 } };
+    });
+  };
+
+  const updateQty = (id: string, delta: number) => {
+    setCart((prev) => {
+      const existing = prev[id];
+      if (!existing) return prev;
+      const nextQty = existing.qty + delta;
+      if (nextQty <= 0) {
+        const copy = { ...prev };
+        delete copy[id];
+        return copy;
+      }
+      return { ...prev, [id]: { ...existing, qty: nextQty } };
+    });
+  };
+
+  const cartItems = Object.values(cart);
+  const subtotal = cartItems.reduce((acc, { item, qty }) => {
+    const price = item.offerPrice !== null && item.offerPrice !== undefined ? item.offerPrice : item.price;
+    return acc + price * qty;
+  }, 0);
+
+  const handleCharge = async () => {
+    if (cartItems.length === 0) return;
+    setSubmitting(true);
+    try {
+      const newOrder: Order = {
+        id: `POS-${Date.now()}`,
+        customerName: customerName.trim() || "Walk-in Guest",
+        phone: customerPhone.trim() || "0000000000",
+        mode: channel,
+        note: "",
+        items: cartItems.map((c) => ({
+          id: String(c.item.id),
+          name: c.item.name,
+          category: c.item.categoryName || "hot",
+          price: c.item.offerPrice !== null && c.item.offerPrice !== undefined ? c.item.offerPrice : c.item.price,
+          qty: c.qty,
+        })),
+        subtotal: subtotal,
+        savings: 0,
+        total: subtotal,
+        paymentMethod: "cod",
+        paid: true,
+        status: "Completed", // POS orders bypass the kitchen flow for immediate closure if preferred, but we should probably use Pending or Accepted so it goes to the Order Center! The user says: "POS orders should actually be submitted... and appear in Order Center". So I will set it to Pending! Wait, if it's placed from POS, it's already "Accepted". I'll use "Accepted".
+        createdAt: new Date().toISOString(),
+      };
+      
+      // Force status to Accepted so it lands in the kitchen
+      newOrder.status = "Accepted";
+
+      await createOrder(newOrder);
+      setCart({});
+      setCustomerName("");
+      setCustomerPhone("");
+      alert("Order placed successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to place order.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
-    <div className="flex-1 p-6 h-screen overflow-y-auto bg-[#FDFBF7] vb-scrollbar">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center max-w-4xl mb-6">
-        <div className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8B7355]" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search the menu…"
-            className="h-12 w-full rounded-2xl border border-[#e8dfd5] bg-white pl-11 pr-4 text-[14px] focus:border-[#D4AF37] focus:outline-none focus:ring-4 focus:ring-[#D4AF37]/20 text-[#2C1810]"
-          />
+    <div className="flex flex-1 h-screen overflow-hidden bg-[#FDFBF7]">
+      {/* Menu Area */}
+      <div className="flex-1 flex flex-col p-6 overflow-y-auto vb-scrollbar">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center max-w-4xl mb-6">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8B7355]" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search the menu…"
+              className="h-12 w-full rounded-2xl border border-[#e8dfd5] bg-white pl-11 pr-4 text-[14px] focus:border-[#D4AF37] focus:outline-none focus:ring-4 focus:ring-[#D4AF37]/20 text-[#2C1810]"
+            />
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1 rounded-2xl border border-[#e8dfd5] bg-white p-1">
+            <button
+              onClick={() => setChannel("Dine-in")}
+              className={`relative rounded-xl px-4 py-2 text-[13px] font-bold transition-colors ${
+                channel === "Dine-in" ? "bg-gradient-to-b from-[#e8dfd5] to-[#d4c5b0] text-[#2C1810]" : "text-[#8B7355]"
+              }`}
+            >
+              Dine-in
+            </button>
+            <button
+              onClick={() => setChannel("Takeaway")}
+              className={`relative rounded-xl px-4 py-2 text-[13px] font-bold transition-colors ${
+                channel === "Takeaway" ? "bg-gradient-to-b from-[#e8dfd5] to-[#d4c5b0] text-[#2C1810]" : "text-[#8B7355]"
+              }`}
+            >
+              Takeaway
+            </button>
+          </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1 rounded-2xl border border-[#e8dfd5] bg-white p-1">
+        <div className="no-scrollbar flex gap-2 overflow-x-auto pb-2 mb-6">
           <button
-            onClick={() => setChannel("dine-in")}
-            className={`relative rounded-xl px-4 py-2 text-[13px] font-bold transition-colors ${
-              channel === "dine-in" ? "bg-gradient-to-b from-[#e8dfd5] to-[#d4c5b0] text-[#2C1810]" : "text-[#8B7355]"
-            }`}
-          >
-            Dine-in
-          </button>
-          <button
-            onClick={() => setChannel("takeaway")}
-            className={`relative rounded-xl px-4 py-2 text-[13px] font-bold transition-colors ${
-              channel === "takeaway" ? "bg-gradient-to-b from-[#e8dfd5] to-[#d4c5b0] text-[#2C1810]" : "text-[#8B7355]"
-            }`}
-          >
-            Takeaway
-          </button>
-        </div>
-      </div>
-
-      <div className="no-scrollbar flex gap-2 overflow-x-auto pb-2 mb-6">
-        <button
-          onClick={() => setCat("all")}
-          className={`flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2 text-[13px] font-bold transition-all ${
-            cat === "all"
-              ? "border-[#2C1810] bg-[#2C1810] text-[#fdfbf7]"
-              : "border-[#e8dfd5] bg-white text-[#8B7355] hover:border-[#d4c5b0]"
-          }`}
-        >
-          <span>✨</span> All
-        </button>
-        {categories.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => setCat(c.id)}
+            onClick={() => setCat("all")}
             className={`flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2 text-[13px] font-bold transition-all ${
-              cat === c.id
+              cat === "all"
                 ? "border-[#2C1810] bg-[#2C1810] text-[#fdfbf7]"
                 : "border-[#e8dfd5] bg-white text-[#8B7355] hover:border-[#d4c5b0]"
             }`}
           >
-            <span>{c.emoji}</span> {c.name}
+            <span>✨</span> All
           </button>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
-        {filtered.map((item) => (
-          <div
-            key={item.id}
-            className="group overflow-hidden rounded-3xl border border-[#e8dfd5] bg-white text-left shadow-sm transition-shadow hover:shadow-md cursor-pointer"
-          >
-            <div className="aspect-[5/3] w-full bg-[#2C1810] flex items-center justify-center relative overflow-hidden pattern-dots">
-              {item.imageUrl ? (
-                <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover opacity-80" />
-              ) : (
-                <span className="text-4xl relative z-10">{
-                  categories.find(c => String(item.categoryId) === c.id)?.emoji || "☕"
-                }</span>
-              )}
-            </div>
-            <div className="p-4">
-              <p className="truncate text-[14px] font-bold leading-tight text-[#2C1810]">
-                {item.name}
-              </p>
-              <p className="mt-1 font-display text-[16px] font-bold text-[#8B7355]">
-                {rupee(item.price)}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {filtered.length === 0 && (
-        <div className="py-20 text-center">
-          <p className="text-[16px] font-bold text-[#2C1810]">No items match</p>
-          <p className="text-[13px] text-[#8B7355] mt-1">Try another category or clear the search.</p>
+          {categories.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setCat(c.id)}
+              className={`flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2 text-[13px] font-bold transition-all ${
+                cat === c.id
+                  ? "border-[#2C1810] bg-[#2C1810] text-[#fdfbf7]"
+                  : "border-[#e8dfd5] bg-white text-[#8B7355] hover:border-[#d4c5b0]"
+              }`}
+            >
+              <span>{c.emoji}</span> {c.name}
+            </button>
+          ))}
         </div>
-      )}
+
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 pb-10">
+          {filtered.map((item) => (
+            <div
+              key={item.id}
+              onClick={() => addToCart(item)}
+              className="group overflow-hidden rounded-3xl border border-[#e8dfd5] bg-white text-left shadow-sm transition-shadow hover:shadow-md cursor-pointer select-none"
+            >
+              <div className="aspect-[5/3] w-full bg-[#2C1810] flex items-center justify-center relative overflow-hidden pattern-dots">
+                {item.imageUrl ? (
+                  <img
+                    src={item.imageUrl.startsWith("s3://velvetbrew/") ? item.imageUrl.replace("s3://velvetbrew/", "https://velvetbrew.s3.ap-south-1.amazonaws.com/") : item.imageUrl}
+                    alt={item.name}
+                    className="w-full h-full object-cover opacity-80"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                ) : (
+                  <span className="text-4xl relative z-10">{
+                    categories.find(c => String(item.categoryId) === c.id)?.emoji || "☕"
+                  }</span>
+                )}
+              </div>
+              <div className="p-4">
+                <p className="truncate text-[14px] font-bold leading-tight text-[#2C1810]">
+                  {item.name}
+                </p>
+                <div className="flex items-center justify-between mt-1">
+                  <p className="font-display text-[16px] font-bold text-[#8B7355]">
+                    {rupee(item.offerPrice !== null && item.offerPrice !== undefined ? item.offerPrice : item.price)}
+                  </p>
+                  {cart[item.id] && (
+                    <span className="bg-[#D4AF37] text-[#2C1810] text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      x{cart[item.id].qty}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {filtered.length === 0 && (
+          <div className="py-20 text-center">
+            <p className="text-[16px] font-bold text-[#2C1810]">No items match</p>
+            <p className="text-[13px] text-[#8B7355] mt-1">Try another category or clear the search.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Cart Sidebar */}
+      <div className="w-80 flex-shrink-0 bg-white border-l border-[#e8dfd5] flex flex-col shadow-[-4px_0_24px_rgba(44,24,16,0.02)] z-10">
+        <div className="p-5 border-b border-[#e8dfd5] bg-[#FDFBF7]">
+          <h2 className="font-display text-[18px] font-bold text-[#2C1810]">Current Ticket</h2>
+          <p className="text-[12px] text-[#8B7355] mt-0.5 font-medium">{channel}</p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-4 vb-scrollbar">
+          {cartItems.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-[#8B7355] opacity-50 space-y-3">
+              <span className="text-4xl">🛒</span>
+              <p className="text-[13px] font-bold">Ticket is empty</p>
+            </div>
+          ) : (
+            cartItems.map(({ item, qty }) => {
+              const price = item.offerPrice !== null && item.offerPrice !== undefined ? item.offerPrice : item.price;
+              return (
+                <div key={item.id} className="flex flex-col gap-2 p-3 rounded-2xl border border-[#e8dfd5] bg-[#FDFBF7]">
+                  <div className="flex justify-between items-start">
+                    <p className="text-[13px] font-bold text-[#2C1810] leading-tight flex-1 pr-2">{item.name}</p>
+                    <p className="text-[13px] font-bold text-[#8B7355] shrink-0">{rupee(price * qty)}</p>
+                  </div>
+                  <div className="flex items-center justify-between mt-1">
+                    <div className="flex items-center gap-3 bg-white border border-[#e8dfd5] rounded-lg p-1">
+                      <button
+                        onClick={() => updateQty(item.id, -1)}
+                        className="w-6 h-6 flex items-center justify-center rounded-md bg-[#FDFBF7] text-[#2C1810] hover:bg-[#e8dfd5] transition-colors"
+                      >
+                        <Minus className="h-3 w-3" />
+                      </button>
+                      <span className="text-[12px] font-bold w-4 text-center text-[#2C1810]">{qty}</span>
+                      <button
+                        onClick={() => updateQty(item.id, 1)}
+                        className="w-6 h-6 flex items-center justify-center rounded-md bg-[#D4AF37] text-[#2C1810] hover:bg-[#c4a130] transition-colors"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => updateQty(item.id, -qty)}
+                      className="text-[#8B7355] hover:text-red-500 transition-colors p-1"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        <div className="p-5 border-t border-[#e8dfd5] bg-[#FDFBF7] space-y-4">
+          <div className="space-y-3">
+            <input
+              type="text"
+              placeholder="Customer Name (Optional)"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              className="w-full h-10 rounded-xl border border-[#e8dfd5] bg-white px-3 text-[13px] focus:border-[#D4AF37] focus:outline-none"
+            />
+            <input
+              type="tel"
+              placeholder="Phone Number (Optional)"
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+              className="w-full h-10 rounded-xl border border-[#e8dfd5] bg-white px-3 text-[13px] focus:border-[#D4AF37] focus:outline-none"
+            />
+          </div>
+
+          <div className="flex justify-between items-center py-2">
+            <span className="text-[14px] font-bold text-[#8B7355]">Subtotal</span>
+            <span className="font-display text-[22px] font-bold text-[#2C1810]">{rupee(subtotal)}</span>
+          </div>
+
+          <button
+            onClick={handleCharge}
+            disabled={cartItems.length === 0 || submitting}
+            className={`w-full py-4 rounded-2xl text-[15px] font-bold transition-all shadow-md ${
+              cartItems.length > 0 && !submitting
+                ? "bg-[#D4AF37] text-[#2C1810] hover:bg-[#c4a130]"
+                : "bg-[#e8dfd5] text-[#8B7355] cursor-not-allowed"
+            }`}
+          >
+            {submitting ? "Processing..." : `Charge ${rupee(subtotal)}`}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

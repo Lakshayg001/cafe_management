@@ -14,16 +14,16 @@ const FILTERS: Array<"All" | OrderStatus> = [
 ];
 
 const NEXT_LABEL: Record<string, string> = {
-  Pending: "Start preparing",
+  Pending: "Accept order",
   Accepted: "Start preparing",
-  Preparing: "Complete",
+  Preparing: "Mark ready",
   Ready: "Complete",
 };
 
 const NEXT_STATUS: Record<string, OrderStatus> = {
-  Pending: "Preparing",
+  Pending: "Accepted",
   Accepted: "Preparing",
-  Preparing: "Completed",
+  Preparing: "Ready",
   Ready: "Completed",
 };
 
@@ -43,16 +43,32 @@ export default function OrderCenterView({
   const live = orders.filter((o) => !["Completed", "Rejected"].includes(o.status));
   const visible = filter === "All" ? orders : orders.filter((o) => o.status === filter);
 
-  const getAge = (dateStr: string) => {
-    const ms = Date.now() - new Date(dateStr).getTime();
-    return Math.floor(ms / 60000);
+  const getAgeMins = (dateStr: any) => {
+    let d: Date;
+    if (typeof dateStr === "object" && dateStr !== null) {
+      if (dateStr._seconds) d = new Date(dateStr._seconds * 1000);
+      else if (dateStr.seconds) d = new Date(dateStr.seconds * 1000);
+      else d = new Date();
+    } else {
+      d = new Date(dateStr);
+    }
+    if (isNaN(d.getTime())) return 0;
+    const ms = Date.now() - d.getTime();
+    return Math.max(0, Math.floor(ms / 60000));
   };
 
-  const getOldest = (status: OrderStatus) => {
+  const formatAge = (mins: number) => {
+    if (mins < 60) return `${mins} min ago`;
+    const hrs = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m > 0 ? `${hrs} hr ${m} min ago` : `${hrs} hr ago`;
+  };
+
+  const getOldestText = (status: OrderStatus) => {
     const rows = orders.filter((o) => o.status === status);
     if (rows.length === 0) return null;
-    const oldest = Math.max(...rows.map((r) => getAge(r.createdAt)));
-    return oldest;
+    const oldest = Math.max(...rows.map((r) => getAgeMins(r.createdAt)));
+    return formatAge(oldest);
   };
 
   const count = (f: "All" | OrderStatus) => {
@@ -75,7 +91,7 @@ export default function OrderCenterView({
         <div className="grid gap-4 sm:grid-cols-4">
           {(["Pending", "Accepted", "Preparing", "Ready"] as OrderStatus[]).map((s) => {
             const rows = orders.filter((o) => o.status === s);
-            const oldest = getOldest(s);
+            const oldestText = getOldestText(s);
             const isActive = filter === s;
             
             return (
@@ -98,7 +114,7 @@ export default function OrderCenterView({
                   <p className={`mt-1.5 text-[11.5px] ${
                     isActive ? "text-[#fdfbf7]/60" : "text-[#8B7355]"
                   }`}>
-                    Oldest {oldest}m ago
+                    Oldest {oldestText}
                   </p>
                 )}
               </button>
@@ -147,8 +163,8 @@ export default function OrderCenterView({
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {visible.map((order) => {
-              const age = getAge(order.createdAt);
-              const stale = age > 12 && !["Completed", "Rejected"].includes(order.status);
+              const mins = getAgeMins(order.createdAt);
+              const stale = mins > 12 && !["Completed", "Rejected"].includes(order.status);
               const done = ["Completed", "Rejected"].includes(order.status);
               const Icon = order.mode === "Dine-in" ? UtensilsCrossed : Store;
 
@@ -171,24 +187,27 @@ export default function OrderCenterView({
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <h3 className="font-display text-[16px] font-bold text-[#2C1810]">
-                          {order.id.slice(-5).toUpperCase()}
+                          #{order.id.slice(-5).toUpperCase()}
                         </h3>
                         <span className="rounded-md bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#8B7355] border border-[#e8dfd5]">
                           {order.status}
                         </span>
                       </div>
-                      <p className="mt-1 flex items-center gap-1.5 text-[11.5px] font-medium text-[#8B7355]">
+                      <p className="mt-1 text-[13.5px] font-bold text-[#2C1810] truncate">
+                        {order.customerName || "Walk-in Guest"}
+                      </p>
+                      <p className="mt-0.5 flex items-center gap-1.5 text-[11.5px] font-medium text-[#8B7355]">
                         <Icon className="h-3 w-3" />
                         {order.mode}
                       </p>
                     </div>
 
                     <span
-                      className={`shrink-0 rounded-lg px-2.5 py-1 text-[11.5px] font-bold tabular-nums ${
+                      className={`shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold tabular-nums whitespace-nowrap ${
                         stale ? "bg-red-50 text-red-600" : "bg-white border border-[#e8dfd5] text-[#2C1810]"
                       }`}
                     >
-                      {age}m
+                      {formatAge(mins)}
                     </span>
                   </header>
 
@@ -217,15 +236,10 @@ export default function OrderCenterView({
 
                   <footer className="border-t border-[#e8dfd5] px-5 py-4 bg-[#fdfbf7]/50">
                     <div className="flex flex-col gap-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-display text-[18px] font-bold text-[#2C1810]">
-                            {rupee(order.total)}
-                          </p>
-                          <p className="text-[12px] font-medium text-[#8B7355] mt-0.5">
-                            {order.customerName || "Guest"}
-                          </p>
-                        </div>
+                      <div className="flex justify-between items-center">
+                        <p className="font-display text-[18px] font-bold text-[#2C1810]">
+                          {rupee(order.total)}
+                        </p>
                         <button 
                           onClick={() => onTogglePaid(order.id, !order.paid)}
                           className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors ${
