@@ -50,7 +50,11 @@ export default function OrderCenterView({
       else if (dateStr.seconds) d = new Date(dateStr.seconds * 1000);
       else d = new Date();
     } else {
-      d = new Date(dateStr);
+      let str = String(dateStr);
+      if (!str.includes("Z") && !str.includes("+")) {
+        str += "Z";
+      }
+      d = new Date(str);
     }
     if (isNaN(d.getTime())) return 0;
     const ms = Date.now() - d.getTime();

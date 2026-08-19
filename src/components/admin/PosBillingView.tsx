@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
-import { Search, Plus, Minus, Trash2 } from "lucide-react";
+import { Search, Plus, Minus, Trash2, Banknote, Smartphone, CreditCard } from "lucide-react";
 import { rupee } from "../../utils/currency";
-import { createOrder } from "../../services/ordersApi";
-import type { Order } from "../../types";
+import { createOrder, createPayment, verifyPayment, updateOrderPaid, updateOrderPaymentFailed } from "../../services/ordersApi";
+import { loadRazorpayScript } from "../../utils/razorpay";
+import type { Order, PaymentMethod } from "../../types";
 
 interface PosBillingViewProps {
   items: any[];
@@ -16,7 +17,9 @@ export default function PosBillingView({ items }: PosBillingViewProps) {
   const [cart, setCart] = useState<Record<string, { item: any; qty: number }>>({});
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [payment, setPayment] = useState<PaymentMethod>("cod");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const categories = [
     { id: "1", name: "Hot Coffee", emoji: "☕" },
@@ -65,13 +68,24 @@ export default function PosBillingView({ items }: PosBillingViewProps) {
   }, 0);
 
   const handleCharge = async () => {
+    setError(null);
+    if (!customerName.trim()) {
+      setError("Customer Name is required.");
+      return;
+    }
+    if (!customerPhone.trim() || customerPhone.replace(/\D/g, "").length < 10) {
+      setError("Valid Phone Number is required.");
+      return;
+    }
     if (cartItems.length === 0) return;
+
     setSubmitting(true);
     try {
+      const orderId = `POS-${Date.now()}`;
       const newOrder: Order = {
-        id: `POS-${Date.now()}`,
-        customerName: customerName.trim() || "Walk-in Guest",
-        phone: customerPhone.trim() || "0000000000",
+        id: orderId,
+        customerName: customerName.trim(),
+        phone: customerPhone.trim(),
         mode: channel,
         note: "",
         items: cartItems.map((c) => ({
@@ -84,24 +98,97 @@ export default function PosBillingView({ items }: PosBillingViewProps) {
         subtotal: subtotal,
         savings: 0,
         total: subtotal,
-        paymentMethod: "cod",
-        paid: true,
-        status: "Completed", // POS orders bypass the kitchen flow for immediate closure if preferred, but we should probably use Pending or Accepted so it goes to the Order Center! The user says: "POS orders should actually be submitted... and appear in Order Center". So I will set it to Pending! Wait, if it's placed from POS, it's already "Accepted". I'll use "Accepted".
+        paymentMethod: payment,
+        paid: payment !== "cod",
+        status: "Accepted",
         createdAt: new Date().toISOString(),
       };
-      
-      // Force status to Accepted so it lands in the kitchen
-      newOrder.status = "Accepted";
 
-      await createOrder(newOrder);
-      setCart({});
-      setCustomerName("");
-      setCustomerPhone("");
-      alert("Order placed successfully!");
+      if (payment === "cod") {
+        await createOrder(newOrder);
+        setCart({});
+        setCustomerName("");
+        setCustomerPhone("");
+        alert("Order placed successfully!");
+        setSubmitting(false);
+      } else {
+        const createRes = await createOrder(newOrder);
+        const backendOrder = createRes && (createRes as any).data ? (createRes as any).data : createRes;
+        const orderNumber = backendOrder?.orderNumber || backendOrder?.id || orderId;
+
+        const scriptLoaded = await loadRazorpayScript();
+        if (!scriptLoaded) {
+          setError("Failed to load Razorpay payment portal.");
+          setSubmitting(false);
+          return;
+        }
+
+        const initPaymentRes = await createPayment(orderNumber, subtotal);
+        const paymentData = initPaymentRes && initPaymentRes.data ? initPaymentRes.data : initPaymentRes;
+
+        const rzpOrderId = paymentData.orderId;
+        const rzpKeyId = paymentData.key;
+        
+        const options = {
+          key: rzpKeyId,
+          amount: Math.round(subtotal * 100),
+          currency: paymentData.currency || "INR",
+          name: "Velvet Brew",
+          description: `POS Order Payment - #${orderNumber}`,
+          order_id: rzpOrderId,
+          handler: async function (response: any) {
+            try {
+              setSubmitting(true);
+              await verifyPayment({
+                razorpayOrderId: response.razorpay_order_id || rzpOrderId,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              });
+              await updateOrderPaid({ ...newOrder, id: orderNumber, paid: true });
+              setCart({});
+              setCustomerName("");
+              setCustomerPhone("");
+              alert("Order & Payment successful!");
+            } catch (err) {
+              console.error(err);
+              alert("Payment verification failed.");
+            } finally {
+              setSubmitting(false);
+            }
+          },
+          modal: {
+            ondismiss: async function () {
+              setSubmitting(true);
+              try {
+                await updateOrderPaymentFailed(newOrder, orderNumber);
+                alert("Payment was cancelled or failed.");
+              } catch (err) {
+                console.error("Failed to mark order as payment failed", err);
+              } finally {
+                setSubmitting(false);
+              }
+            }
+          },
+          theme: { color: "#2C1810" }
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.on("payment.failed", async function (response: any) {
+          setSubmitting(true);
+          try {
+            await updateOrderPaymentFailed(newOrder, orderNumber);
+            alert(`Payment failed: ${response.error.description}`);
+          } catch (err) {
+            console.error(err);
+          } finally {
+            setSubmitting(false);
+          }
+        });
+        rzp.open();
+      }
     } catch (err) {
       console.error(err);
-      alert("Failed to place order.");
-    } finally {
+      setError("Failed to place order.");
       setSubmitting(false);
     }
   };
@@ -267,24 +354,60 @@ export default function PosBillingView({ items }: PosBillingViewProps) {
         </div>
 
         <div className="p-5 border-t border-[#e8dfd5] bg-[#FDFBF7] space-y-4">
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+              <p className="text-red-600 text-[12px] font-medium leading-tight">{error}</p>
+            </div>
+          )}
+
           <div className="space-y-3">
             <input
               type="text"
-              placeholder="Customer Name (Optional)"
+              placeholder="Customer Name *"
               value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
+              onChange={(e) => { setCustomerName(e.target.value); setError(null); }}
               className="w-full h-10 rounded-xl border border-[#e8dfd5] bg-white px-3 text-[13px] focus:border-[#D4AF37] focus:outline-none"
             />
             <input
               type="tel"
-              placeholder="Phone Number (Optional)"
+              placeholder="Phone Number *"
               value={customerPhone}
-              onChange={(e) => setCustomerPhone(e.target.value)}
+              onChange={(e) => { setCustomerPhone(e.target.value); setError(null); }}
               className="w-full h-10 rounded-xl border border-[#e8dfd5] bg-white px-3 text-[13px] focus:border-[#D4AF37] focus:outline-none"
             />
           </div>
 
-          <div className="flex justify-between items-center py-2">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPayment("cod")}
+              className={`flex-1 flex flex-col items-center justify-center gap-1.5 rounded-xl border p-2 transition-all ${
+                payment === "cod" ? "border-[#2C1810] bg-[#2C1810] text-[#FDFBF7]" : "border-[#e8dfd5] bg-white text-[#8B7355] hover:border-[#d4c5b0]"
+              }`}
+            >
+              <Banknote size={16} />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Cash</span>
+            </button>
+            <button
+              onClick={() => setPayment("upi")}
+              className={`flex-1 flex flex-col items-center justify-center gap-1.5 rounded-xl border p-2 transition-all ${
+                payment === "upi" ? "border-[#2C1810] bg-[#2C1810] text-[#FDFBF7]" : "border-[#e8dfd5] bg-white text-[#8B7355] hover:border-[#d4c5b0]"
+              }`}
+            >
+              <Smartphone size={16} />
+              <span className="text-[10px] font-bold uppercase tracking-wider">UPI</span>
+            </button>
+            <button
+              onClick={() => setPayment("card")}
+              className={`flex-1 flex flex-col items-center justify-center gap-1.5 rounded-xl border p-2 transition-all ${
+                payment === "card" ? "border-[#2C1810] bg-[#2C1810] text-[#FDFBF7]" : "border-[#e8dfd5] bg-white text-[#8B7355] hover:border-[#d4c5b0]"
+              }`}
+            >
+              <CreditCard size={16} />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Card</span>
+            </button>
+          </div>
+
+          <div className="flex justify-between items-center pt-2">
             <span className="text-[14px] font-bold text-[#8B7355]">Subtotal</span>
             <span className="font-display text-[22px] font-bold text-[#2C1810]">{rupee(subtotal)}</span>
           </div>
