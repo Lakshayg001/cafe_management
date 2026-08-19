@@ -88,11 +88,11 @@ export default function OrderCenterView({
   };
 
   return (
-    <div className="flex-1 p-6 h-screen overflow-y-auto bg-[#FDFBF7] vb-scrollbar">
+    <div className="flex-1 p-4 md:p-6 h-full overflow-y-auto bg-[#FDFBF7] vb-scrollbar pb-24 md:pb-6">
       <div className="max-w-6xl space-y-6">
         
         {/* Stats Strip */}
-        <div className="grid gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:gap-4 sm:grid-cols-4">
           {(["Pending", "Accepted", "Preparing", "Ready"] as OrderStatus[]).map((s) => {
             const rows = orders.filter((o) => o.status === s);
             const oldestText = getOldestText(s);

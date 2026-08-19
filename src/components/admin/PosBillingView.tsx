@@ -61,12 +61,15 @@ export default function PosBillingView({ items }: PosBillingViewProps) {
     });
   };
 
+  const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
+
   const cartItems = Object.values(cart);
   const subtotal = cartItems.reduce((acc, { item, qty }) => {
     const price = item.offerPrice !== null && item.offerPrice !== undefined ? item.offerPrice : item.price;
     return acc + price * qty;
   }, 0);
 
+  // ... (handleCharge is unchanged) ...
   const handleCharge = async () => {
     setError(null);
     if (!customerName.trim()) {
@@ -109,6 +112,7 @@ export default function PosBillingView({ items }: PosBillingViewProps) {
         setCart({});
         setCustomerName("");
         setCustomerPhone("");
+        setIsMobileCartOpen(false);
         alert("Order placed successfully!");
         setSubmitting(false);
       } else {
@@ -148,6 +152,7 @@ export default function PosBillingView({ items }: PosBillingViewProps) {
               setCart({});
               setCustomerName("");
               setCustomerPhone("");
+              setIsMobileCartOpen(false);
               alert("Order & Payment successful!");
             } catch (err) {
               console.error(err);
@@ -194,9 +199,9 @@ export default function PosBillingView({ items }: PosBillingViewProps) {
   };
 
   return (
-    <div className="flex flex-1 h-screen overflow-hidden bg-[#FDFBF7]">
+    <div className="flex flex-col md:flex-row flex-1 h-full overflow-hidden bg-[#FDFBF7] relative">
       {/* Menu Area */}
-      <div className="flex-1 flex flex-col p-6 overflow-y-auto vb-scrollbar">
+      <div className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto vb-scrollbar pb-24 md:pb-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center max-w-4xl mb-6">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8B7355]" />
@@ -259,9 +264,9 @@ export default function PosBillingView({ items }: PosBillingViewProps) {
             <div
               key={item.id}
               onClick={() => addToCart(item)}
-              className="group overflow-hidden rounded-3xl border border-[#e8dfd5] bg-white text-left shadow-sm transition-shadow hover:shadow-md cursor-pointer select-none"
+              className="group overflow-hidden rounded-3xl border border-[#e8dfd5] bg-white text-left shadow-sm transition-shadow hover:shadow-md cursor-pointer select-none flex flex-col"
             >
-              <div className="aspect-[5/3] w-full bg-[#2C1810] flex items-center justify-center relative overflow-hidden pattern-dots">
+              <div className="aspect-[5/3] w-full bg-[#2C1810] flex items-center justify-center relative overflow-hidden pattern-dots shrink-0">
                 {item.imageUrl ? (
                   <img
                     src={item.imageUrl.startsWith("s3://velvetbrew/") ? item.imageUrl.replace("s3://velvetbrew/", "https://velvetbrew.s3.ap-south-1.amazonaws.com/") : item.imageUrl}
@@ -275,16 +280,16 @@ export default function PosBillingView({ items }: PosBillingViewProps) {
                   }</span>
                 )}
               </div>
-              <div className="p-4">
-                <p className="truncate text-[14px] font-bold leading-tight text-[#2C1810]">
+              <div className="p-3 md:p-4 flex flex-col flex-1 min-w-0">
+                <p className="truncate text-[13px] md:text-[14px] font-bold leading-tight text-[#2C1810]">
                   {item.name}
                 </p>
-                <div className="flex items-center justify-between mt-1">
-                  <p className="font-display text-[16px] font-bold text-[#8B7355]">
+                <div className="flex items-center justify-between mt-auto pt-2">
+                  <p className="font-display text-[15px] md:text-[16px] font-bold text-[#8B7355]">
                     {rupee(item.offerPrice !== null && item.offerPrice !== undefined ? item.offerPrice : item.price)}
                   </p>
                   {cart[item.id] && (
-                    <span className="bg-[#D4AF37] text-[#2C1810] text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    <span className="bg-[#D4AF37] text-[#2C1810] text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ml-1">
                       x{cart[item.id].qty}
                     </span>
                   )}
@@ -302,11 +307,22 @@ export default function PosBillingView({ items }: PosBillingViewProps) {
         )}
       </div>
 
+      {/* Cart Sidebar Overlay for Mobile */}
+      <div 
+        className={`fixed inset-0 z-40 bg-black/50 md:hidden transition-opacity ${isMobileCartOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`} 
+        onClick={() => setIsMobileCartOpen(false)} 
+      />
+
       {/* Cart Sidebar */}
-      <div className="w-80 flex-shrink-0 bg-white border-l border-[#e8dfd5] flex flex-col shadow-[-4px_0_24px_rgba(44,24,16,0.02)] z-10">
-        <div className="p-5 border-b border-[#e8dfd5] bg-[#FDFBF7]">
-          <h2 className="font-display text-[18px] font-bold text-[#2C1810]">Current Ticket</h2>
-          <p className="text-[12px] text-[#8B7355] mt-0.5 font-medium">{channel}</p>
+      <div className={`fixed md:static inset-y-0 right-0 z-50 w-[85vw] sm:w-96 md:w-80 flex-shrink-0 bg-white border-l border-[#e8dfd5] flex flex-col shadow-2xl md:shadow-[-4px_0_24px_rgba(44,24,16,0.02)] transition-transform duration-300 ${isMobileCartOpen ? "translate-x-0" : "translate-x-full md:translate-x-0"}`}>
+        <div className="p-5 border-b border-[#e8dfd5] bg-[#FDFBF7] flex justify-between items-center">
+          <div>
+            <h2 className="font-display text-[18px] font-bold text-[#2C1810]">Current Ticket</h2>
+            <p className="text-[12px] text-[#8B7355] mt-0.5 font-medium">{channel}</p>
+          </div>
+          <button className="md:hidden p-2 text-[#8B7355] hover:bg-[#e8dfd5] rounded-full" onClick={() => setIsMobileCartOpen(false)}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4 vb-scrollbar">
@@ -425,6 +441,21 @@ export default function PosBillingView({ items }: PosBillingViewProps) {
           </button>
         </div>
       </div>
+
+      {/* Mobile Cart Floating Bar */}
+      {cartItems.length > 0 && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-[#e8dfd5] shadow-[0_-4px_12px_rgba(44,24,16,0.05)] z-30">
+          <button 
+            onClick={() => setIsMobileCartOpen(true)} 
+            className="w-full py-3.5 rounded-xl bg-[#2C1810] text-[#FDFBF7] font-bold text-[14px] flex items-center justify-between px-5 shadow-lg"
+          >
+            <div className="flex items-center gap-3">
+              <span className="bg-[#D4AF37] text-[#2C1810] px-2 py-0.5 rounded-md text-[12px]">{cartItems.length} items</span>
+            </div>
+            <span>View Ticket · {rupee(subtotal)}</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

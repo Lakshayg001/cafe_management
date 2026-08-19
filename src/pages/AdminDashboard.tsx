@@ -109,6 +109,8 @@ export default function AdminDashboard() {
     await updateOrderPaid(updated);
   };
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#FDFBF7]">
@@ -119,17 +121,46 @@ export default function AdminDashboard() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#FDFBF7] font-['Jost',sans-serif]">
-      <AdminSidebar activeView={activeView} onChangeView={setActiveView} />
-      
-      {activeView === "pos" ? (
-        <PosBillingView items={menuItems} />
-      ) : (
-        <OrderCenterView 
-          orders={orders} 
-          onStatusChange={handleStatusChange} 
-          onTogglePaid={handleTogglePaid} 
+      {/* Mobile Sidebar Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
+      
+      {/* Sidebar */}
+      <div className={`fixed md:static inset-y-0 left-0 z-50 transform transition-transform duration-300 ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 flex`}>
+        <AdminSidebar 
+          activeView={activeView} 
+          onChangeView={(v) => { setActiveView(v); setIsMobileMenuOpen(false); }} 
+        />
+      </div>
+
+      <div className="flex-1 flex flex-col h-screen overflow-hidden min-w-0 relative">
+        {/* Mobile Header */}
+        <div className="md:hidden flex items-center justify-between bg-[#2C1810] text-[#fdfbf7] p-4 shrink-0 shadow-md relative z-30">
+          <div className="flex items-center gap-3">
+             <button onClick={() => setIsMobileMenuOpen(true)} className="p-1 hover:bg-[#8B7355]/20 rounded-lg transition-colors">
+               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+             </button>
+             <h1 className="font-display font-bold text-sm tracking-widest uppercase">Velvet Brew</h1>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 overflow-hidden relative">
+          {activeView === "pos" ? (
+            <PosBillingView items={menuItems} />
+          ) : (
+            <OrderCenterView 
+              orders={orders} 
+              onStatusChange={handleStatusChange} 
+              onTogglePaid={handleTogglePaid} 
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }
