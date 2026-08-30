@@ -294,10 +294,17 @@ function ItemModal({ isOpen, onClose, item, categories, onSave }: { isOpen: bool
     setSubmitting(true);
     setError(null);
     try {
+      const payload = {
+        ...formData,
+        displayOrder: formData.displayOrder ?? item?.displayOrder ?? 0,
+      };
+      
+      console.log("Submitting Menu Item Payload:", payload);
+      
       if (item) {
-        await updateMenuItem({ ...formData, id: item.id } as any);
+        await updateMenuItem({ ...payload, id: item.id } as any);
       } else {
-        await createMenuItem(formData as any);
+        await createMenuItem(payload as any);
       }
       onSave();
       onClose();
