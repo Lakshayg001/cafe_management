@@ -233,7 +233,7 @@ export default function PosBillingView({ items }: PosBillingViewProps) {
           </div>
         </div>
 
-        <div className="no-scrollbar flex gap-2 overflow-x-auto pb-2 mb-6">
+        <div className="no-scrollbar flex gap-2 overflow-x-auto pb-4 mb-4 pt-1 px-1 -mx-1">
           <button
             onClick={() => setCat("all")}
             className={`flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2 text-[13px] font-bold transition-all ${
