@@ -6,13 +6,15 @@ import type { Order, OrderStatus } from "../types";
 import AdminSidebar from "../components/admin/AdminSidebar";
 import PosBillingView from "../components/admin/PosBillingView";
 import OrderCenterView from "../components/admin/OrderCenterView";
+import MenuPricingView from "../components/admin/MenuPricingView";
 
 export default function AdminDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [menuItems, setMenuItems] = useState<any[]>([]);
-  const [activeView, setActiveView] = useState<"pos" | "orders">("orders");
+  const [activeView, setActiveView] = useState<"pos" | "orders" | "menu">("orders");
   const [loading, setLoading] = useState(true);
 
+  // ... (keep load logic) ...
   const load = useCallback(async () => {
     try {
       const [data, apiItems] = await Promise.all([
@@ -143,6 +145,8 @@ export default function AdminDashboard() {
         <div className="flex-1 overflow-hidden relative">
           {activeView === "pos" ? (
             <PosBillingView items={menuItems} />
+          ) : activeView === "menu" ? (
+            <MenuPricingView />
           ) : (
             <OrderCenterView 
               orders={orders} 

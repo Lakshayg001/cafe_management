@@ -15,8 +15,8 @@ import { logout } from "../../services/adminAuth";
 import { useNavigate } from "react-router-dom";
 
 interface AdminSidebarProps {
-  activeView: "pos" | "orders";
-  onChangeView: (view: "pos" | "orders") => void;
+  activeView: "pos" | "orders" | "menu";
+  onChangeView: (view: "pos" | "orders" | "menu") => void;
 }
 
 export default function AdminSidebar({ activeView, onChangeView }: AdminSidebarProps) {
@@ -81,7 +81,14 @@ export default function AdminSidebar({ activeView, onChangeView }: AdminSidebarP
             Catalogue
           </p>
           <div className="space-y-1">
-            <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-[#8B7355] cursor-not-allowed opacity-70">
+            <button
+              onClick={() => onChangeView("menu")}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${
+                activeView === "menu"
+                  ? "bg-[#D4AF37] text-[#2C1810]"
+                  : "text-[#fdfbf7] hover:bg-[#8B7355]/20"
+              }`}
+            >
               <BookOpen size={18} />
               Menu & Pricing
             </button>
