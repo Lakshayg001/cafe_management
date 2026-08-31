@@ -200,6 +200,11 @@ export default function OrderCenterView({
                       <p className="mt-1 text-[13.5px] font-bold text-[#2C1810] truncate">
                         {order.customerName || "Walk-in Guest"}
                       </p>
+                      {order.phone && (
+                        <p className="mt-0.5 text-[11.5px] font-medium text-[#8B7355] truncate">
+                          {order.phone}
+                        </p>
+                      )}
                       <p className="mt-0.5 flex items-center gap-1.5 text-[11.5px] font-medium text-[#8B7355]">
                         <Icon className="h-3 w-3" />
                         {order.mode}
