@@ -460,6 +460,15 @@ export default function App() {
       createdAt: new Date().toISOString(),
     };
 
+    console.log("--- TRACING ORDER BEFORE createOrder() ---");
+    cartItems.forEach((line) => {
+      console.log(`Item Name: ${line.item.name}`);
+      console.log(`Original price: ${line.item.price}`);
+      console.log(`offerPrice: ${line.item.offerPrice}`);
+    });
+    console.log("Final order.items array sent to API:", order.items);
+    console.log("------------------------------------------");
+
     try {
       if (payment === "cod") {
         const createRes = await createOrder(order);
