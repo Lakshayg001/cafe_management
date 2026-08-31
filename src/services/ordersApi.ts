@@ -224,6 +224,8 @@ export async function createOrder(order: Order): Promise<Order> {
         return {
           menuId,
           quantity: item.qty,
+          price: item.price,
+          unitPrice: item.price,
         };
       }),
       paymentMethod: (order.paymentMethod || "cod").toUpperCase(),
@@ -255,6 +257,8 @@ function mapOrderToBackendPayload(order: Order) {
     items: order.items.map((item) => ({
       menuId: Number(item.id) || Number(item.id.replace(/\D/g, "")) || 0,
       quantity: item.qty,
+      price: item.price,
+      unitPrice: item.price,
     })),
     paymentStatus: order.paid ? "SUCCESS" : "PENDING",
     paymentMethod: (order.paymentMethod || "cod").toUpperCase(),
@@ -293,6 +297,8 @@ export async function updateOrderStatus(order: Order): Promise<Order | null> {
         items: order.items.map((item) => ({
           menuId: Number(item.id),
           quantity: item.qty,
+          price: item.price,
+          unitPrice: item.price,
         })),
         orderStatus: order.status.toUpperCase(),
         paymentStatus: order.paid ? "SUCCESS" : "PENDING",
