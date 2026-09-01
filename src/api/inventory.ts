@@ -1,10 +1,19 @@
 import type { InventoryCategory, Supplier, InventoryItem, StockMovement } from "../types";
 
+import { auth } from "../firebase/firebase";
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "https://api.velvetbrew.in/api/v1" : "/api/v1");
 
 // Helper to safely extract JSON data, dealing with wrappers
-async function fetchAndUnwrap(url: string, options?: RequestInit) {
-  const res = await fetch(url, options);
+async function fetchAndUnwrap(url: string, options: RequestInit = {}) {
+  const headers = new Headers(options.headers || {});
+  
+  if (auth.currentUser) {
+    const token = await auth.currentUser.getIdToken();
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const res = await fetch(url, { ...options, headers });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`API Error ${res.status}: ${text}`);
@@ -39,8 +48,7 @@ export async function updateCategory(id: number, data: { description: string }):
 }
 
 export async function deleteCategory(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/inventory/categories/${id}`, { method: "DELETE" });
-  if (!res.ok) throw new Error("Failed to delete category");
+  await fetchAndUnwrap(`${API_BASE}/inventory/categories/${id}`, { method: "DELETE" });
 }
 
 // ----------------------------------------------------
@@ -87,8 +95,7 @@ export async function toggleSupplier(id: number, enabled: boolean): Promise<Supp
 }
 
 export async function deleteSupplier(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/inventory/suppliers/${id}`, { method: "DELETE" });
-  if (!res.ok) throw new Error("Failed to delete supplier");
+  await fetchAndUnwrap(`${API_BASE}/inventory/suppliers/${id}`, { method: "DELETE" });
 }
 
 // ----------------------------------------------------
