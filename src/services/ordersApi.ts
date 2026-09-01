@@ -223,10 +223,13 @@ export async function createOrder(order: Order): Promise<Order> {
       const menuId = Number(item.id) || Number(item.id.replace(/\D/g, "")) || 0;
       return {
         menuId,
+        menuName: item.name,
         quantity: item.qty,
         price: item.price,
         unitPrice: item.price,
+        unit_price: item.price,
         totalPrice: item.price * item.qty,
+        total_price: item.price * item.qty,
       };
     }),
       paymentMethod: (order.paymentMethod || "cod").toUpperCase(),
@@ -257,10 +260,13 @@ function mapOrderToBackendPayload(order: Order) {
     },
     items: order.items.map((item) => ({
       menuId: Number(item.id) || Number(item.id.replace(/\D/g, "")) || 0,
+      menuName: item.name,
       quantity: item.qty,
       price: item.price,
       unitPrice: item.price,
+      unit_price: item.price,
       totalPrice: item.price * item.qty,
+      total_price: item.price * item.qty,
     })),
     paymentStatus: order.paid ? "SUCCESS" : "PENDING",
     paymentMethod: (order.paymentMethod || "cod").toUpperCase(),
@@ -298,10 +304,13 @@ export async function updateOrderStatus(order: Order): Promise<Order | null> {
         specialInstructions: order.note || "",
         items: order.items.map((item) => ({
           menuId: Number(item.id),
+          menuName: item.name,
           quantity: item.qty,
           price: item.price,
           unitPrice: item.price,
+          unit_price: item.price,
           totalPrice: item.price * item.qty,
+          total_price: item.price * item.qty,
         })),
         orderStatus: order.status.toUpperCase(),
         paymentStatus: order.paid ? "SUCCESS" : "PENDING",
