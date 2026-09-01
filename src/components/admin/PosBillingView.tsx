@@ -92,19 +92,24 @@ export default function PosBillingView({ items }: PosBillingViewProps) {
         email: "",
         mode: channel,
         note: "",
-        items: cartItems.map((c) => ({
-          id: String(c.item.id),
-          name: c.item.name,
-          category: c.item.categoryName || "hot",
-          price: c.item.offerPrice !== null && c.item.offerPrice !== undefined && c.item.offerPrice < c.item.price ? c.item.offerPrice : c.item.price,
-          qty: c.qty,
-        })),
+        items: cartItems.map((c) => {
+          const offerPrice = c.item.offerPrice;
+          const originalPrice = c.item.price;
+          const effectivePrice = (offerPrice !== null && offerPrice !== undefined && offerPrice < originalPrice) ? offerPrice : originalPrice;
+          return {
+            id: String(c.item.id),
+            name: c.item.name,
+            category: c.item.categoryName || "hot",
+            price: effectivePrice,
+            qty: c.qty,
+          };
+        }),
         subtotal: subtotal,
         savings: 0,
         total: subtotal,
         paymentMethod: payment,
-        paid: payment !== "cod",
-        status: "Accepted",
+        paid: false,
+        status: "Pending",
         createdAt: new Date().toISOString(),
       };
 
