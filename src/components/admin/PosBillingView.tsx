@@ -65,7 +65,7 @@ export default function PosBillingView({ items }: PosBillingViewProps) {
 
   const cartItems = Object.values(cart);
   const subtotal = cartItems.reduce((acc, { item, qty }) => {
-    const price = item.offerPrice !== null && item.offerPrice !== undefined ? item.offerPrice : item.price;
+    const price = item.offerPrice !== null && item.offerPrice !== undefined && item.offerPrice < item.price ? item.offerPrice : item.price;
     return acc + price * qty;
   }, 0);
 
@@ -89,13 +89,14 @@ export default function PosBillingView({ items }: PosBillingViewProps) {
         id: orderId,
         customerName: customerName.trim(),
         phone: customerPhone.trim(),
+        email: "",
         mode: channel,
         note: "",
         items: cartItems.map((c) => ({
           id: String(c.item.id),
           name: c.item.name,
           category: c.item.categoryName || "hot",
-          price: c.item.offerPrice !== null && c.item.offerPrice !== undefined ? c.item.offerPrice : c.item.price,
+          price: c.item.offerPrice !== null && c.item.offerPrice !== undefined && c.item.offerPrice < c.item.price ? c.item.offerPrice : c.item.price,
           qty: c.qty,
         })),
         subtotal: subtotal,
@@ -286,7 +287,7 @@ export default function PosBillingView({ items }: PosBillingViewProps) {
                 </p>
                 <div className="flex items-center justify-between mt-auto pt-2">
                   <p className="font-display text-[15px] md:text-[16px] font-bold text-[#8B7355]">
-                    {rupee(item.offerPrice !== null && item.offerPrice !== undefined ? item.offerPrice : item.price)}
+                    {rupee(item.offerPrice !== null && item.offerPrice !== undefined && item.offerPrice < item.price ? item.offerPrice : item.price)}
                   </p>
                   {cart[item.id] && (
                     <span className="bg-[#D4AF37] text-[#2C1810] text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ml-1">
@@ -333,7 +334,7 @@ export default function PosBillingView({ items }: PosBillingViewProps) {
             </div>
           ) : (
             cartItems.map(({ item, qty }) => {
-              const price = item.offerPrice !== null && item.offerPrice !== undefined ? item.offerPrice : item.price;
+              const price = item.offerPrice !== null && item.offerPrice !== undefined && item.offerPrice < item.price ? item.offerPrice : item.price;
               return (
                 <div key={item.id} className="flex flex-col gap-2 p-3 rounded-2xl border border-[#e8dfd5] bg-[#FDFBF7]">
                   <div className="flex justify-between items-start">
