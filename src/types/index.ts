@@ -85,3 +85,4 @@ export interface PayOptionProps {
     selected: PaymentMethod;
     onSelect: (id: PaymentMethod) => void;
 }
+export * from './inventory';
