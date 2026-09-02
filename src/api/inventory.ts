@@ -6,14 +6,8 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "h
 
 // Helper to safely extract JSON data, dealing with wrappers
 async function fetchAndUnwrap(url: string, options: RequestInit = {}) {
-  const headers = new Headers(options.headers || {});
-  
-  if (auth.currentUser) {
-    const token = await auth.currentUser.getIdToken();
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-
-  const res = await fetch(url, { ...options, headers });
+  // Pass credentials and headers
+  const res = await fetch(url, options);
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`API Error ${res.status}: ${text}`);
