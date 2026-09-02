@@ -18,15 +18,22 @@ export interface Supplier {
 export interface InventoryItem {
   id: number;
   categoryId: number;
+  categoryName?: string;
   supplierId: number;
+  supplierName?: string;
   name: string;
   sku: string;
   unit: string;
+  currentStock: number;
   minimumStock: number;
   maximumStock: number;
   reorderLevel: number;
   unitCost: number;
-  // Note: current stock or other fields are missing intentionally until documented
+  lowStock?: boolean;
+  outOfStock?: boolean;
+  enabled?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface StockMovement {

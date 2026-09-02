@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Package, Activity, AlertCircle } from "lucide-react";
 import { createItem, updateItem, stockIn, consumeStock, wastageStock, adjustStock } from "../../../api/inventory";
-import { getCategories, getSuppliers } from "../../../api/inventory";
+import { getCategories, getSuppliers, getItems } from "../../../api/inventory";
 import type { InventoryCategory, Supplier, InventoryItem } from "../../../types";
 
 export default function ItemsTab() {
@@ -15,10 +15,31 @@ export default function ItemsTab() {
   
   const [submitting, setSubmitting] = useState(false);
 
+  const [items, setItems] = useState<InventoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [cats, supps, itms] = await Promise.all([
+        getCategories(),
+        getSuppliers(),
+        getItems()
+      ]);
+      setCategories(cats);
+      setSuppliers(supps);
+      setItems(itms);
+    } catch (err: any) {
+      console.error(err);
+      alert("Failed to load inventory items: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Load categories and suppliers for the dropdowns
   useEffect(() => {
-    getCategories().then(setCategories).catch(console.error);
-    getSuppliers().then(setSuppliers).catch(console.error);
+    loadData();
   }, []);
 
   // Item Form
@@ -60,6 +81,7 @@ export default function ItemsTab() {
       });
       alert("Item created successfully!");
       setIsItemModalOpen(false);
+      loadData();
     } catch (err: any) {
       alert(err.message || "Failed to create item");
     } finally {
@@ -86,6 +108,7 @@ export default function ItemsTab() {
       
       alert(`${opType} operation successful!`);
       setIsOpModalOpen(false);
+      loadData();
     } catch (err: any) {
       alert(err.message || "Failed to perform operation");
     } finally {
@@ -93,9 +116,9 @@ export default function ItemsTab() {
     }
   };
 
-  const openOperation = (type: "STOCK_IN" | "CONSUME" | "WASTAGE" | "ADJUST") => {
+  const openOperation = (type: "STOCK_IN" | "CONSUME" | "WASTAGE" | "ADJUST", presetItemId?: number) => {
     setOpType(type);
-    setOpForm({ itemId: "", quantity: 0, unitCost: 0, reason: "", adjustmentType: "ADJUSTMENT_IN" });
+    setOpForm({ itemId: presetItemId ? presetItemId.toString() : "", quantity: 0, unitCost: 0, reason: "", adjustmentType: "ADJUSTMENT_IN" });
     setIsOpModalOpen(true);
   };
 
@@ -117,35 +140,83 @@ export default function ItemsTab() {
         </div>
       </div>
 
-      {/* Manual Operations Panel (Because item list API is missing) */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#D4AF37]/50 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h4 className="font-bold text-[#2C1810] flex items-center gap-2">
-            <Activity size={18} className="text-[#8B7355]" />
-            Manual Stock Operations
-          </h4>
-          <p className="text-xs text-[#8B7355] mt-1">
-            (Item listing API is pending. You can test operations on a known Item ID here.)
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button onClick={() => openOperation("STOCK_IN")} className="px-3 py-1.5 text-xs font-bold rounded-lg border border-[#e8dfd5] hover:bg-[#FDFBF7] text-[#2C1810]">Stock In</button>
-          <button onClick={() => openOperation("CONSUME")} className="px-3 py-1.5 text-xs font-bold rounded-lg border border-[#e8dfd5] hover:bg-[#FDFBF7] text-[#2C1810]">Consume</button>
-          <button onClick={() => openOperation("WASTAGE")} className="px-3 py-1.5 text-xs font-bold rounded-lg border border-[#e8dfd5] hover:bg-[#FDFBF7] text-red-600">Wastage</button>
-          <button onClick={() => openOperation("ADJUST")} className="px-3 py-1.5 text-xs font-bold rounded-lg border border-[#e8dfd5] hover:bg-[#FDFBF7] text-[#8B7355]">Adjust</button>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto vb-scrollbar bg-white rounded-2xl shadow-sm border border-[#e8dfd5] flex items-center justify-center p-6 text-center">
-        <div>
-          <div className="w-16 h-16 rounded-2xl bg-[#FDFBF7] border border-[#e8dfd5] flex items-center justify-center text-[#8B7355] mx-auto mb-4">
-            <Package size={32} />
+      <div className="flex-1 overflow-y-auto vb-scrollbar bg-white rounded-2xl shadow-sm border border-[#e8dfd5]">
+        {loading ? (
+          <div className="p-8 text-center text-[#8B7355]">Loading items...</div>
+        ) : items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-12 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-[#FDFBF7] border border-[#e8dfd5] flex items-center justify-center text-[#8B7355] mx-auto mb-4">
+              <Package size={32} />
+            </div>
+            <h3 className="text-lg font-bold text-[#2C1810] mb-2">No Items Found</h3>
+            <p className="text-[#8B7355] max-w-sm mx-auto mb-6">
+              Create your first inventory item to start tracking stock.
+            </p>
+            <button
+              onClick={() => { setItemForm({ ...itemForm }); setIsItemModalOpen(true); }}
+              className="bg-[#2C1810] text-[#D4AF37] px-4 py-2 rounded-xl font-semibold hover:bg-[#1a0f0a] transition-colors"
+            >
+              Add Item
+            </button>
           </div>
-          <h3 className="text-lg font-bold text-[#2C1810] mb-2">Item List Pending</h3>
-          <p className="text-[#8B7355] max-w-sm mx-auto">
-            The API endpoint to retrieve all inventory items has not been provided yet. Once available, the item table will appear here.
-          </p>
-        </div>
+        ) : (
+          <div className="min-w-max">
+            <div className="grid grid-cols-8 gap-4 px-6 py-4 border-b border-[#e8dfd5] bg-[#FDFBF7]/50">
+              <div className="text-xs font-bold text-[#8B7355] uppercase tracking-wider col-span-2">Item</div>
+              <div className="text-xs font-bold text-[#8B7355] uppercase tracking-wider">SKU</div>
+              <div className="text-xs font-bold text-[#8B7355] uppercase tracking-wider">Category</div>
+              <div className="text-xs font-bold text-[#8B7355] uppercase tracking-wider text-right">Stock</div>
+              <div className="text-xs font-bold text-[#8B7355] uppercase tracking-wider text-right">Unit Cost</div>
+              <div className="text-xs font-bold text-[#8B7355] uppercase tracking-wider text-center">Status</div>
+              <div className="text-xs font-bold text-[#8B7355] uppercase tracking-wider text-right">Actions</div>
+            </div>
+            <div className="divide-y divide-[#e8dfd5]">
+              {items.map((item) => (
+                <div key={item.id} className="grid grid-cols-8 gap-4 px-6 py-4 items-center hover:bg-[#FDFBF7] transition-colors">
+                  <div className="col-span-2">
+                    <p className="font-bold text-[#2C1810]">{item.name}</p>
+                    <p className="text-xs text-[#8B7355]">{item.supplierName || `Supplier #${item.supplierId}`}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs font-medium bg-[#e8dfd5]/50 text-[#8B7355] px-2 py-1 rounded-md">{item.sku}</span>
+                  </div>
+                  <div className="text-sm text-[#2C1810]">
+                    {item.categoryName || `Category #${item.categoryId}`}
+                  </div>
+                  <div className="text-right">
+                    <span className={`font-bold ${item.outOfStock ? 'text-red-600' : item.lowStock ? 'text-orange-500' : 'text-[#2C1810]'}`}>
+                      {item.currentStock}
+                    </span>
+                    <span className="text-xs text-[#8B7355] ml-1">{item.unit}</span>
+                  </div>
+                  <div className="text-right text-sm text-[#2C1810]">
+                    ₹{item.unitCost.toFixed(2)}
+                  </div>
+                  <div className="text-center">
+                    {item.outOfStock ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full">
+                        <AlertCircle size={12} /> Out of Stock
+                      </span>
+                    ) : item.lowStock ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-full">
+                        <AlertCircle size={12} /> Low Stock
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                        In Stock
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-right flex items-center justify-end gap-2">
+                    <button onClick={() => openOperation("STOCK_IN", item.id)} className="text-xs font-bold text-[#2C1810] hover:text-[#D4AF37] border border-[#e8dfd5] px-2 py-1 rounded-md">In</button>
+                    <button onClick={() => openOperation("CONSUME", item.id)} className="text-xs font-bold text-[#2C1810] hover:text-[#D4AF37] border border-[#e8dfd5] px-2 py-1 rounded-md">Out</button>
+                    <button onClick={() => openOperation("ADJUST", item.id)} className="text-xs font-bold text-[#8B7355] hover:text-[#D4AF37] border border-[#e8dfd5] px-2 py-1 rounded-md">Adj</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Item Modal */}

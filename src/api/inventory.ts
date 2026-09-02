@@ -96,6 +96,11 @@ export async function deleteSupplier(id: number): Promise<void> {
 // ITEMS
 // ----------------------------------------------------
 
+export async function getItems(): Promise<InventoryItem[]> {
+  const res = await fetchAndUnwrap(`${API_BASE}/inventory/items`);
+  return Array.isArray(res) ? res : [];
+}
+
 export async function createItem(data: Partial<InventoryItem>): Promise<InventoryItem> {
   return fetchAndUnwrap(`${API_BASE}/inventory/items`, {
     method: "POST",
