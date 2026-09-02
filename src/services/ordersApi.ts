@@ -235,6 +235,11 @@ export async function createOrder(order: Order): Promise<Order> {
       payment_method: (order.paymentMethod || "cod").toUpperCase(),
       payment_mode: (order.paymentMethod || "cod").toUpperCase(),
       specialInstructions: order.note,
+      subtotal: order.subtotal || 0,
+      tax: 0.00,
+      discount: order.savings || 0,
+      totalAmount: order.total || 0,
+      total: order.total || 0,
       orderStatus: "PENDING",
       paymentStatus: "PENDING",
     }),
@@ -270,6 +275,9 @@ function mapOrderToBackendPayload(order: Order) {
     orderStatus: order.status.toUpperCase(),
     tax: 0.00,
     discount: order.savings || 0,
+    subtotal: order.subtotal || 0,
+    totalAmount: order.total || 0,
+    total: order.total || 0,
     specialInstructions: order.note || "",
   };
 }
