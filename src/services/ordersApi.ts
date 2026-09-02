@@ -292,23 +292,7 @@ export async function updateOrderStatus(order: Order): Promise<Order | null> {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        customer: {
-          name: order.customerName,
-          mobile: order.phone,
-        },
-        specialInstructions: order.note || "",
-        items: order.items.map((item) => ({
-          menuId: Number(item.id),
-          menuName: item.name,
-          quantity: item.qty,
-          price: item.price,
-          totalPrice: item.price * item.qty,
-          total_price: item.price * item.qty,
-        })),
-        orderStatus: order.status.toUpperCase(),
-        paymentStatus: order.paid ? "SUCCESS" : "PENDING",
-      }),
+      body: JSON.stringify(mapOrderToBackendPayload(order)),
     }
   );
 
